@@ -1,7 +1,7 @@
-using Abstracciones.Interfaces;
+using Abstracciones.Especies;
 using DA;
-using DA.Contexto;
-using Flujo;
+using DA.Contexto.AdopcionContexto;
+using Flujo.Especies;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 

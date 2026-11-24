@@ -1,4 +1,4 @@
-﻿using Abstracciones.Interfaces;
+﻿using Abstracciones.Especies;
 using Abstracciones.Modelos;
 using DA.Contexto;
 using Microsoft.AspNetCore.Mvc;
@@ -14,35 +14,55 @@ namespace AdopcionAPI.Controllers
 
         public EspeciesController(IEspecieFlujo especieFlujo) => _especieFlujo = especieFlujo;
 
-        [HttpGet]
-        public async Task<IActionResult> Obtener() => Ok(await _especieFlujo.Obtener());
 
-        [HttpGet("{id:int}")]
-        public async Task<IActionResult> ObtenerPorId(int id)
+        [HttpGet]
+        [ProducesResponseType<IReadOnlyList<IEspecieDtos.EspecieDto>>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<IReadOnlyList<IEspecieDtos.EspecieDto>>> Listar([FromQuery] IEspecieDtos.EspecieFiltro filtro, CancellationToken ct)
         {
-            var especie = await _especieFlujo.ObtenerPorId(id);
-            return especie is null ? NotFound() : Ok(especie);
+            var resultado = await _especieFlujo.ListarAsync(filtro, ct);
+            Response.Headers["X-Total-Count"] = resultado.Total.ToString();
+            Response.Headers["X-Page"] = resultado.Pagina.ToString();
+            Response.Headers["X-Page-Size"] = resultado.Tamano.ToString();
+            return Ok(resultado.Items);
         }
+
+        [HttpGet("{id:int:min(1)}")]
+        [ProducesResponseType<IEspecieDtos.EspecieDto>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IEspecieDtos.EspecieDto>> Obtener(int id, CancellationToken ct) =>
+            Ok(await _especieFlujo.ObtenerAsync(id, ct));
 
         [HttpPost]
-        public async Task<IActionResult> Agregar([FromBody] Especie especie)
+        [ProducesResponseType<IEspecieDtos.EspecieDto>(StatusCodes.Status201Created)]
+        [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<IEspecieDtos.EspecieDto>> Crear(IEspecieDtos.EspecieCrearDTO dto, CancellationToken ct)
         {
-            var creado = await _especieFlujo.Agregar(especie);
-            return CreatedAtAction(nameof(ObtenerPorId), new { id = creado.IdEspecie }, creado);
+            var creado = await _especieFlujo.CrearAsync(dto, ct);
+            return CreatedAtAction(nameof(Obtener), new { id = creado.Id }, creado);
         }
 
-        [HttpPut("{id:int}")]
-        public async Task<IActionResult> Actualizar(int id, [FromBody] Especie datos)
+        [HttpPut("{id:int:min(1)}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> Actualizar(int id, IEspecieDtos.EspecieActualizarDTO dto, CancellationToken ct)
         {
-            var resultado = await _especieFlujo.Actualizar(id, datos);
-            return resultado ? NoContent() : NotFound();
+            await _especieFlujo.ActualizarAsync(id, dto, ct);
+            return NoContent();
         }
 
-        [HttpDelete("{id:int}")]
-        public async Task<IActionResult> Eliminar(int id)
+        [HttpDelete("{id:int:min(1)}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> Eliminar(int id, CancellationToken ct)
         {
-            var resultado = await _especieFlujo.Eliminar(id);
-            return resultado ? NoContent() : NotFound();
+            await _especieFlujo.EliminarAsync(id, ct);
+            return NoContent();
         }
+
     }
 }
