@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Excepciones\" />
+    <Folder Include="Usuarios\" />
   </ItemGroup>
 
 </Project>
