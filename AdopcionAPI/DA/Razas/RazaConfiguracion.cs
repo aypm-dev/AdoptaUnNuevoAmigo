@@ -30,6 +30,7 @@ namespace DA.Razas
             // Índices pensados para los filtros que realmente usa la pantalla.
             b.HasIndex(t => t.FechaRegistro);
             b.HasIndex(t => t.EspecieId);
+            b.HasIndex(t => new { t.EspecieId, t.Nombre }).IsUnique();
         }
 
 

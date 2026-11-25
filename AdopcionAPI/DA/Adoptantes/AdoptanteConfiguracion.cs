@@ -24,7 +24,7 @@ namespace DA.Adoptantes
                 .HasMaxLength(100);
             b.Property(e => e.Contacto)
                 .IsRequired()
-                .HasMaxLength(100);
+                .HasMaxLength(150);
             b.Property(e => e.OtrasMascotas)
                 .IsRequired()
                 .HasMaxLength(500);
@@ -33,7 +33,9 @@ namespace DA.Adoptantes
             b.HasOne(d => d.TipoVivienda)
                 .WithMany(p => p.Adoptantes)
                 .HasForeignKey(d => d.TipoViviendaId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
+            b.HasIndex(e => e.Identificacion)
+                .IsUnique();
         }
 
     }

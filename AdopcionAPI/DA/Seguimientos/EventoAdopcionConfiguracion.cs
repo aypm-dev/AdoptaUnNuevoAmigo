@@ -16,6 +16,7 @@ namespace DA.Seguimientos
         {
             b.ToTable("EventosAdopcion");
             b.HasKey(e => e.IdEvento);
+            b.Property(e => e.Tipo).HasConversion<string>().HasMaxLength(30).IsRequired();
             b.Property(e => e.Detalle).IsRequired().HasMaxLength(1100);
             b.HasOne<SolicitudAdopcion>().WithMany().HasForeignKey(e => e.SolicitudId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne<Animal>().WithMany().HasForeignKey(e => e.AnimalId).OnDelete(DeleteBehavior.Restrict);

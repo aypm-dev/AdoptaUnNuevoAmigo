@@ -25,10 +25,11 @@ public static class AdopcionSeeder
 
         await ctx.Database.MigrateAsync(ct);
 
-        // If core test data already exists, backfill FotoUrl/Descripcion if missing, then exit.
+        // If core test data already exists, backfill FotoUrl/Descripcion and ensure >= 30 solicitudes, then exit.
         if (await ctx.Animales.AnyAsync(ct))
         {
             await BackfillDescripcionesYFotosAsync(ctx, ct);
+            await AsegurarVolumenMinimoSemillaAsync(ctx, ct);
             return;
         }
 
@@ -199,6 +200,7 @@ public static class AdopcionSeeder
 
         await ctx.SaveChangesAsync(ct);
         await BackfillDescripcionesYFotosAsync(ctx, ct);
+        await AsegurarVolumenMinimoSemillaAsync(ctx, ct);
     }
 
     private static async Task BackfillDescripcionesYFotosAsync(AdopcionContexto ctx, CancellationToken ct)
@@ -256,5 +258,409 @@ public static class AdopcionSeeder
 
         if (cambio)
             await ctx.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Garantiza de forma idempotente al menos 30 registros en la entidad principal (SolicitudAdopcion)
+    /// y datos coherentes en las demás entidades (Sección 6.7), preservando intactos los 8 animales base.
+    /// </summary>
+    private static async Task AsegurarVolumenMinimoSemillaAsync(AdopcionContexto ctx, CancellationToken ct)
+    {
+        if (await ctx.Solicitudes.CountAsync(ct) >= 32)
+            return;
+
+        var ahora = DateTime.UtcNow;
+
+        // 1. Catálogos existentes
+        var perro = await ctx.Especies.FirstOrDefaultAsync(e => e.Nombre == "Perro", ct);
+        var gato = await ctx.Especies.FirstOrDefaultAsync(e => e.Nombre == "Gato", ct);
+        if (perro is null || gato is null)
+            return;
+
+        var razasExistentes = await ctx.Razas.ToListAsync(ct);
+        async Task<Raza> ObtenerOCrearRazaAsync(string nombre, string desc, int especieId)
+        {
+            var r = razasExistentes.FirstOrDefault(x => x.EspecieId == especieId && x.Nombre == nombre);
+            if (r is not null) return r;
+            r = new Raza { Nombre = nombre, Descripcion = desc, EspecieId = especieId, FechaRegistro = ahora.AddMonths(-4) };
+            ctx.Razas.Add(r);
+            await ctx.SaveChangesAsync(ct);
+            razasExistentes.Add(r);
+            return r;
+        }
+
+        var beagle = await ObtenerOCrearRazaAsync("Beagle", "Perro sabueso alegre y curioso", perro.IdEspecie);
+        var golden = await ObtenerOCrearRazaAsync("Golden Retriever", "Perro dócil, familiar e inteligente", perro.IdEspecie);
+        var persa = await ObtenerOCrearRazaAsync("Persa", "Gato tranquilo de pelaje largo", gato.IdEspecie);
+        var mestizo = razasExistentes.First(r => r.EspecieId == perro.IdEspecie);
+        var criolloGato = razasExistentes.First(r => r.EspecieId == gato.IdEspecie);
+
+        var tiposVivienda = await ctx.TiposViviendas.ToListAsync(ct);
+        var vacunasObligatorias = await ctx.TiposVacunas.Where(v => v.Obligatoria && v.Activo).ToListAsync(ct);
+        var veterinarias = await ctx.Veterinarias.ToListAsync(ct);
+        var voluntarios = await ctx.Voluntarios.ToListAsync(ct);
+
+        if (!voluntarios.Any(v => v.Nombre == "Andrés Mora"))
+        {
+            var andres = new Voluntario { Nombre = "Andrés Mora", Contacto = "andres.voluntario@refugio.cr | +506 8877-9900", Activo = true };
+            ctx.Voluntarios.Add(andres);
+            await ctx.SaveChangesAsync(ct);
+            voluntarios.Add(andres);
+        }
+
+        // 2. Adoptantes adicionales (identificaciones únicas CR)
+        var adoptantesExistentes = await ctx.Adoptantes.ToListAsync(ct);
+        var nuevosAdoptantesDef = new (string Id, string Nombre, string Contacto, string Otras)[]
+        {
+            ("1-3001-0001", "Laura Méndez", "laura.mendez@email.com | +506 8801-1001", "Ninguna"),
+            ("1-3001-0002", "Diego Castillo", "diego.castillo@email.com | +506 8802-1002", "1 perro mestizo"),
+            ("1-3001-0003", "Paula Jiménez", "paula.jimenez@email.com | +506 8803-1003", "Ninguna"),
+            ("1-3001-0004", "Esteban Rojas", "esteban.rojas@email.com | +506 8804-1004", "1 gato adulto"),
+            ("2-3001-0005", "Camila Herrera", "camila.herrera@email.com | +506 8805-1005", "Ninguna"),
+            ("2-3001-0006", "Gabriel Navarro", "gabriel.navarro@email.com | +506 8806-1006", "Ninguna"),
+            ("3-3001-0007", "Fernanda Solís", "fernanda.solis@email.com | +506 8807-1007", "2 gatos"),
+            ("3-3001-0008", "Rodrigo Quesada", "rodrigo.quesada@email.com | +506 8808-1008", "Ninguna"),
+            ("4-3001-0009", "Natalia Araya", "natalia.araya@email.com | +506 8809-1009", "1 perro pequeño"),
+            ("4-3001-0010", "Sebastián Mora", "sebastian.mora@email.com | +506 8810-1010", "Ninguna"),
+            ("1-3001-0011", "Daniela Chacón", "daniela.chacon@email.com | +506 8811-1011", "Ninguna"),
+            ("2-3001-0012", "Alejandro Vega", "alejandro.vega@email.com | +506 8812-1012", "1 conejo")
+        };
+
+        for (var i = 0; i < nuevosAdoptantesDef.Length; i++)
+        {
+            var def = nuevosAdoptantesDef[i];
+            if (adoptantesExistentes.Any(a => a.Identificacion == def.Id))
+                continue;
+
+            var nuevo = new Adoptante
+            {
+                Identificacion = def.Id,
+                Nombre = def.Nombre,
+                Contacto = def.Contacto,
+                OtrasMascotas = def.Otras,
+                TipoViviendaId = tiposVivienda[i % tiposVivienda.Count].IdTipoVivienda,
+                FechaRegistro = ahora.AddDays(-(180 - i * 8)),
+                Activo = true
+            };
+            ctx.Adoptantes.Add(nuevo);
+            adoptantesExistentes.Add(nuevo);
+        }
+        await ctx.SaveChangesAsync(ct);
+
+        // 3. 30 animales adicionales con estados coherentes para generar 30 solicitudes válidas (total >= 34)
+        var animalesExistentes = await ctx.Animales.ToListAsync(ct);
+        var razasCiclo = new[] { mestizo, beagle, golden, criolloGato, persa };
+        var definicionesAnimales = new (string Nombre, string Sexo, string Tamanio, bool EsGato, EstadoAnimal Estado)[]
+        {
+            // 0..5: Disponible (con historial de solicitud rechazada o cancelada)
+            ("Max", "Macho", "Grande", false, EstadoAnimal.Disponible),
+            ("Bella", "Hembra", "Mediano", false, EstadoAnimal.Disponible),
+            ("Kira", "Hembra", "Pequeño", true, EstadoAnimal.Disponible),
+            ("Simba", "Macho", "Pequeño", true, EstadoAnimal.Disponible),
+            ("Nala", "Hembra", "Mediano", false, EstadoAnimal.Disponible),
+            ("Coco", "Macho", "Pequeño", false, EstadoAnimal.Disponible),
+
+            // 6..11: EnProceso (1 solicitud activa por animal: Enviada, EnRevision o VisitaProgramada)
+            ("Thor", "Macho", "Grande", false, EstadoAnimal.EnProceso),
+            ("Lola", "Hembra", "Pequeño", false, EstadoAnimal.EnProceso),
+            ("Bruno", "Macho", "Mediano", false, EstadoAnimal.EnProceso),
+            ("Maya", "Hembra", "Pequeño", true, EstadoAnimal.EnProceso),
+            ("Zeus", "Macho", "Grande", false, EstadoAnimal.EnProceso),
+            ("Chispita", "Hembra", "Pequeño", true, EstadoAnimal.EnProceso),
+
+            // 12..17: EnSeguimiento (solicitud aprobada + visita favorable + seguimientos 30/60/90)
+            ("Paco", "Macho", "Mediano", false, EstadoAnimal.EnSeguimiento),
+            ("Milo", "Macho", "Pequeño", true, EstadoAnimal.EnSeguimiento),
+            ("Chloe", "Hembra", "Pequeño", true, EstadoAnimal.EnSeguimiento),
+            ("Boby", "Macho", "Mediano", false, EstadoAnimal.EnSeguimiento),
+            ("Kiara", "Hembra", "Grande", false, EstadoAnimal.EnSeguimiento),
+            ("Rocco", "Macho", "Grande", false, EstadoAnimal.EnSeguimiento),
+
+            // 18..29: Adoptado definitivo (solicitud aprobada + 3 seguimientos favorables + evento definitivo)
+            ("Sasha", "Hembra", "Mediano", false, EstadoAnimal.Adoptado),
+            ("Oreo", "Macho", "Pequeño", true, EstadoAnimal.Adoptado),
+            ("Pelusa", "Hembra", "Pequeño", true, EstadoAnimal.Adoptado),
+            ("Duque", "Macho", "Grande", false, EstadoAnimal.Adoptado),
+            ("Princesa", "Hembra", "Pequeño", false, EstadoAnimal.Adoptado),
+            ("Mateo", "Macho", "Mediano", false, EstadoAnimal.Adoptado),
+            ("Dante", "Macho", "Grande", false, EstadoAnimal.Adoptado),
+            ("Fifi", "Hembra", "Pequeño", true, EstadoAnimal.Adoptado),
+            ("Tango", "Macho", "Mediano", false, EstadoAnimal.Adoptado),
+            ("Mochi", "Hembra", "Pequeño", true, EstadoAnimal.Adoptado),
+            ("Bimba", "Hembra", "Mediano", false, EstadoAnimal.Adoptado),
+            ("Lukas", "Macho", "Grande", false, EstadoAnimal.Adoptado)
+        };
+
+        var animalesBatch = new List<(int Indice, Animal Animal)>();
+        for (var i = 0; i < definicionesAnimales.Length; i++)
+        {
+            var def = definicionesAnimales[i];
+            var existente = animalesExistentes.FirstOrDefault(a => a.Nombre == def.Nombre);
+            if (existente is null)
+            {
+                var raza = def.EsGato
+                    ? (i % 2 == 0 ? criolloGato : persa)
+                    : razasCiclo[i % 3];
+
+                var foto = def.EsGato
+                    ? $"https://cataas.com/cat?width=800&height=600&v={10 + i}"
+                    : $"https://placedog.net/800/600?id={20 + i}";
+
+                existente = new Animal
+                {
+                    Nombre = def.Nombre,
+                    RazaId = raza.IdRaza,
+                    FechaNacimiento = ahora.AddMonths(-(12 + (i % 48))),
+                    Sexo = def.Sexo,
+                    Tamanio = def.Tamanio,
+                    Esterilizado = "Sí",
+                    Activo = true,
+                    Estado = def.Estado,
+                    FotoUrl = foto,
+                    Descripcion = $"{def.Nombre} es un compañero noble y sociable que pasó por valoración veterinaria completa en el refugio."
+                };
+                ctx.Animales.Add(existente);
+                animalesExistentes.Add(existente);
+            }
+            animalesBatch.Add((i, existente));
+        }
+        await ctx.SaveChangesAsync(ct);
+
+        // 4. Vacunaciones obligatorias, consultas y solicitudes coherentes para los 30 animales adicionales
+        var animalesConVacunas = await ctx.Vacunaciones
+            .Select(v => v.AnimalId)
+            .Distinct()
+            .ToHashSetAsync(ct);
+
+        var animalesConConsultas = await ctx.Consultas
+            .Select(c => c.AnimalId)
+            .Distinct()
+            .ToHashSetAsync(ct);
+
+        var animalesConSolicitudes = await ctx.Solicitudes
+            .Select(s => s.AnimalId)
+            .Distinct()
+            .ToHashSetAsync(ct);
+
+        var solicitudesCreadas = new List<(int Indice, Animal Animal, SolicitudAdopcion Solicitud)>();
+
+        foreach (var (i, animal) in animalesBatch)
+        {
+            // Vacunas obligatorias al día
+            if (!animalesConVacunas.Contains(animal.IdAnimal))
+            {
+                var fechaVac = ahora.Date.AddDays(-(60 + i));
+                foreach (var vacuna in vacunasObligatorias)
+                {
+                    ctx.Vacunaciones.Add(new Vacunacion
+                    {
+                        AnimalId = animal.IdAnimal,
+                        TipoVacunaId = vacuna.IdTipoVacuna,
+                        Fecha = fechaVac,
+                        ProximaDosis = fechaVac.AddYears(1)
+                    });
+                }
+            }
+
+            // Consultas veterinarias de ingreso (15 registros adicionales)
+            if (i % 2 == 0 && !animalesConConsultas.Contains(animal.IdAnimal) && veterinarias.Count > 0)
+            {
+                ctx.Consultas.Add(new ConsultaVeterinaria
+                {
+                    AnimalId = animal.IdAnimal,
+                    VeterinariaId = veterinarias[i % veterinarias.Count].IdVeterinaria,
+                    Fecha = ahora.AddDays(-(50 + i)),
+                    Diagnostico = "Control preventivo de ingreso en buen estado general",
+                    Tratamiento = "Desparasitación preventiva y vitaminas"
+                });
+            }
+
+            // Solicitud de adopción
+            if (!animalesConSolicitudes.Contains(animal.IdAnimal))
+            {
+                var adoptante = adoptantesExistentes[i % adoptantesExistentes.Count];
+                EstadoSolicitud estadoSol;
+                DateTime fechaSol;
+                DateTime? fechaRes = null;
+
+                if (i <= 5) // Disponible -> solicitud histórica cerrada
+                {
+                    estadoSol = i % 2 == 0 ? EstadoSolicitud.Rechazada : EstadoSolicitud.Cancelada;
+                    fechaSol = ahora.AddDays(-(55 + i));
+                    fechaRes = ahora.AddDays(-(48 + i));
+                }
+                else if (i <= 11) // EnProceso -> 1 solicitud activa por animal
+                {
+                    estadoSol = (i - 6) switch
+                    {
+                        0 or 1 => EstadoSolicitud.Enviada,
+                        2 or 3 => EstadoSolicitud.EnRevision,
+                        _ => EstadoSolicitud.VisitaProgramada
+                    };
+                    fechaSol = ahora.AddDays(-(10 - (i - 6)));
+                }
+                else if (i <= 17) // EnSeguimiento -> aprobada reciente
+                {
+                    estadoSol = EstadoSolicitud.Aprobada;
+                    fechaSol = ahora.AddDays(-(75 + (i - 12) * 3));
+                    fechaRes = ahora.AddDays(-(68 + (i - 12) * 3));
+                }
+                else // Adoptado definitivo -> aprobada hace > 100 días
+                {
+                    estadoSol = EstadoSolicitud.Aprobada;
+                    fechaSol = ahora.AddDays(-(150 + (i - 18) * 5));
+                    fechaRes = ahora.AddDays(-(140 + (i - 18) * 5));
+                }
+
+                var solicitud = new SolicitudAdopcion
+                {
+                    AnimalId = animal.IdAnimal,
+                    AdoptanteId = adoptante.IdAdoptante,
+                    FechaSolicitud = fechaSol,
+                    FechaResolucion = fechaRes,
+                    Estado = estadoSol
+                };
+                ctx.Solicitudes.Add(solicitud);
+                solicitudesCreadas.Add((i, animal, solicitud));
+            }
+        }
+        await ctx.SaveChangesAsync(ct);
+
+        // 5. Visitas domiciliarias, seguimientos, alertas y eventos para las solicitudes creadas
+        var seguimientosVencidosNuevos = new List<(SeguimientoPostAdopcion Seg, string AnimalNombre)>();
+
+        foreach (var (i, animal, solicitud) in solicitudesCreadas)
+        {
+            var voluntario = voluntarios[i % voluntarios.Count];
+
+            if (solicitud.Estado == EstadoSolicitud.Rechazada)
+            {
+                ctx.Visitas.Add(new VisitaDomiciliaria
+                {
+                    SolicitudId = solicitud.IdSolicitud,
+                    VoluntarioId = voluntario.IdVoluntario,
+                    Fecha = solicitud.FechaSolicitud.AddDays(4),
+                    Resultado = ResultadoVisita.Desfavorable,
+                    Observaciones = "Falta de cerramiento perimetral seguro para la mascota."
+                });
+            }
+            else if (solicitud.Estado == EstadoSolicitud.VisitaProgramada)
+            {
+                ctx.Visitas.Add(new VisitaDomiciliaria
+                {
+                    SolicitudId = solicitud.IdSolicitud,
+                    VoluntarioId = voluntario.IdVoluntario,
+                    Fecha = ahora.AddDays(3 + (i % 4)),
+                    Resultado = ResultadoVisita.Pendiente
+                });
+            }
+            else if (solicitud.Estado == EstadoSolicitud.Aprobada)
+            {
+                ctx.Visitas.Add(new VisitaDomiciliaria
+                {
+                    SolicitudId = solicitud.IdSolicitud,
+                    VoluntarioId = voluntario.IdVoluntario,
+                    Fecha = (solicitud.FechaResolucion ?? ahora).AddDays(-3),
+                    Resultado = ResultadoVisita.Favorable,
+                    Observaciones = "Hogar apto, seguro y con excelente disposición familiar."
+                });
+
+                var baseAprob = solicitud.FechaResolucion ?? ahora.AddDays(-100);
+
+                if (animal.Estado == EstadoAnimal.EnSeguimiento)
+                {
+                    var vencer60 = i is 12 or 13;
+                    var seg60 = new SeguimientoPostAdopcion
+                    {
+                        SolicitudId = solicitud.IdSolicitud,
+                        Hito = HitoSeguimiento.Dias60,
+                        FechaProgramada = vencer60 ? ahora.AddDays(-3) : ahora.AddDays(5),
+                        Estado = vencer60 ? EstadoSeguimiento.Vencido : EstadoSeguimiento.Pendiente
+                    };
+
+                    ctx.Seguimientos.AddRange(
+                        new SeguimientoPostAdopcion
+                        {
+                            SolicitudId = solicitud.IdSolicitud,
+                            Hito = HitoSeguimiento.Dias30,
+                            FechaProgramada = baseAprob.AddDays(30),
+                            FechaRealizada = baseAprob.AddDays(31),
+                            Estado = EstadoSeguimiento.Favorable,
+                            Observaciones = "Buena adaptación inicial en su nuevo hogar."
+                        },
+                        seg60,
+                        new SeguimientoPostAdopcion
+                        {
+                            SolicitudId = solicitud.IdSolicitud,
+                            Hito = HitoSeguimiento.Dias90,
+                            FechaProgramada = baseAprob.AddDays(90),
+                            Estado = EstadoSeguimiento.Pendiente
+                        }
+                    );
+
+                    if (vencer60)
+                        seguimientosVencidosNuevos.Add((seg60, animal.Nombre));
+                }
+                else if (animal.Estado == EstadoAnimal.Adoptado)
+                {
+                    ctx.Seguimientos.AddRange(
+                        new SeguimientoPostAdopcion
+                        {
+                            SolicitudId = solicitud.IdSolicitud,
+                            Hito = HitoSeguimiento.Dias30,
+                            FechaProgramada = baseAprob.AddDays(30),
+                            FechaRealizada = baseAprob.AddDays(30),
+                            Estado = EstadoSeguimiento.Favorable,
+                            Observaciones = "Adaptación satisfactoria al primer mes."
+                        },
+                        new SeguimientoPostAdopcion
+                        {
+                            SolicitudId = solicitud.IdSolicitud,
+                            Hito = HitoSeguimiento.Dias60,
+                            FechaProgramada = baseAprob.AddDays(60),
+                            FechaRealizada = baseAprob.AddDays(61),
+                            Estado = EstadoSeguimiento.Favorable,
+                            Observaciones = "Mascota activa, sana y con vacunas al día."
+                        },
+                        new SeguimientoPostAdopcion
+                        {
+                            SolicitudId = solicitud.IdSolicitud,
+                            Hito = HitoSeguimiento.Dias90,
+                            FechaProgramada = baseAprob.AddDays(90),
+                            FechaRealizada = baseAprob.AddDays(90),
+                            Estado = EstadoSeguimiento.Favorable,
+                            Observaciones = "Cierre de seguimiento exitoso; adopción definitiva."
+                        }
+                    );
+
+                    ctx.Eventos.Add(new EventoAdopcion
+                    {
+                        SolicitudId = solicitud.IdSolicitud,
+                        AnimalId = animal.IdAnimal,
+                        Tipo = TipoEventoAdopcion.AdopcionDefinitiva,
+                        Fecha = baseAprob.AddDays(90),
+                        Detalle = $"Seguimiento de 90 días favorable para {animal.Nombre}: adopción definitiva."
+                    });
+                }
+            }
+        }
+        await ctx.SaveChangesAsync(ct);
+
+        // 6. Alertas para los seguimientos vencidos recién creados
+        foreach (var (seg, animalNombre) in seguimientosVencidosNuevos)
+        {
+            if (!await ctx.Alertas.AnyAsync(a => a.SeguimientoId == seg.IdSeguimiento, ct))
+            {
+                ctx.Alertas.Add(new AlertaSeguimiento
+                {
+                    SeguimientoId = seg.IdSeguimiento,
+                    FechaCreacion = ahora.AddDays(-2),
+                    Mensaje = $"Seguimiento de 60 días vencido sin realizar: {animalNombre}.",
+                    EscaladaAlCoordinador = true,
+                    FechaEscalada = ahora.AddDays(-2)
+                });
+            }
+        }
+        await ctx.SaveChangesAsync(ct);
     }
 }

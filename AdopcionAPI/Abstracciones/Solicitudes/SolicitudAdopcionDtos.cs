@@ -1,14 +1,11 @@
 ﻿using Abstracciones.Comunes;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Text;
 
 namespace Abstracciones.Solicitudes
 {
     public class SolicitudAdopcionDtos
     {
-
         public class SolicitudCrearDTO
         {
             [Range(1, int.MaxValue, ErrorMessage = "El animal es obligatorio.")]
@@ -20,7 +17,8 @@ namespace Abstracciones.Solicitudes
 
         public class SolicitudCambiarEstadoDTO
         {
-            [EnumDataType(typeof(EstadoSolicitud))]
+            [Required(ErrorMessage = "El estado es obligatorio.")]
+            [EnumDataType(typeof(EstadoSolicitud), ErrorMessage = "El estado no es válido.")]
             public EstadoSolicitud Estado { get; set; }
         }
 
@@ -41,6 +39,5 @@ namespace Abstracciones.Solicitudes
             public EstadoSolicitud? Estado { get; set; }
             public string Orden { get; set; } = "-fecha";
         }
-
     }
 }

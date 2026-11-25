@@ -1,18 +1,17 @@
 ﻿using Abstracciones.Comunes;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Text;
 
 namespace Abstracciones.Seguimientos
 {
     public class SeguimientoDtos
     {
-
         public class SeguimientoResultadoDTO
         {
             public bool Favorable { get; set; }
-            [StringLength(1000)] public string? Observaciones { get; set; }
+
+            [StringLength(1000, ErrorMessage = "Las observaciones no pueden superar los 1000 caracteres.")]
+            public string? Observaciones { get; set; }
         }
 
         public record SeguimientoDto(int IdSeguimiento, int SolicitudId, int AnimalId, string? AnimalNombre,
@@ -29,6 +28,5 @@ namespace Abstracciones.Seguimientos
             public HitoSeguimiento? Hito { get; set; }
             public string Orden { get; set; } = "fecha";   // por FechaProgramada
         }
-
     }
 }

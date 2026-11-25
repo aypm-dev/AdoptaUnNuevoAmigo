@@ -21,6 +21,7 @@ namespace DA.TiposVacunas
             b.Property(e => e.Nombre).IsRequired().HasMaxLength(100);
             b.Property(e => e.Obligatoria).IsRequired();
             b.Property(e => e.Activo);
+            b.HasIndex(e => e.Nombre).IsUnique();
 
         }
 

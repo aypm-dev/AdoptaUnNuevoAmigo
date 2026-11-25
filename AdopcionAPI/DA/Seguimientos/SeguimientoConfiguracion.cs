@@ -14,6 +14,8 @@ namespace DA.Seguimientos
         {
             b.ToTable("SeguimientosPostAdopcion");
             b.HasKey(e => e.IdSeguimiento);
+            b.Property(e => e.Hito).HasConversion<string>().HasMaxLength(20).IsRequired();
+            b.Property(e => e.Estado).HasConversion<string>().HasMaxLength(20).IsRequired();
             b.Property(e => e.Observaciones).HasMaxLength(1000);
             b.HasOne(s => s.Solicitud).WithMany().HasForeignKey(s => s.SolicitudId).OnDelete(DeleteBehavior.Restrict);
             b.HasIndex(s => new { s.SolicitudId, s.Hito }).IsUnique();   // un 30, un 60 y un 90 por solicitud

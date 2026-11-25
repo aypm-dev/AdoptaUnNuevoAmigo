@@ -17,8 +17,9 @@ namespace DA.Especies
             // Sin esto EF crea nvarchar(max) para todo: lento, sin índice posible
             // y sin protección. Los límites de aquí deben coincidir con las anotaciones de los DTOs.
             b.Property(e => e.Nombre).IsRequired().HasMaxLength(100);
-            b.Property(e => e.Descripcion).IsRequired().HasMaxLength(150);
+            b.Property(e => e.Descripcion).IsRequired().HasMaxLength(500);
             b.Property(e => e.Activo);
+            b.HasIndex(e => e.Nombre).IsUnique();
 
         }
     }
