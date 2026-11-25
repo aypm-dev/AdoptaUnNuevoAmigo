@@ -18,14 +18,8 @@ jobs:
       with:
         dotnet-version: 10.0.x
         
-    - name: Restaurar dependencias API
-      run: dotnet restore AdopcionAPI/
+    - name: Restaurar dependencias
+      run: dotnet restore AdopcionAPI/AdopcionAPI.slnx
       
-    - name: Restaurar dependencias Web
-      run: dotnet restore AdopcionWeb/
-      
-    - name: Compilar API (Build)
-      run: dotnet build AdopcionAPI/ --no-restore
-      
-    - name: Compilar Web (Build)
-      run: dotnet build AdopcionWeb/ --no-restore
+    - name: Compilar solución (API + Web)
+      run: dotnet build AdopcionAPI/AdopcionAPI.slnx --no-restore

@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="Abstracciones/Abstracciones.csproj" />
   <Project Path="AdopcionAPI/AdopcionAPI.csproj" />
+  <Project Path="AdopcionWeb/AdopcionWeb.csproj" />
   <Project Path="DA/DA.csproj" />
   <Project Path="Flujo/Flujo.csproj" />
 </Solution>

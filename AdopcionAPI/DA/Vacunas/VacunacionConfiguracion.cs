@@ -7,7 +7,7 @@ using System.Text;
 
 namespace DA.Vacunas
 {
-    public class VacunacionConfiguracion
+    public class VacunacionConfiguracion : IEntityTypeConfiguration<Vacunacion>
     {
 
         public void Configure(EntityTypeBuilder<Vacunacion> b)

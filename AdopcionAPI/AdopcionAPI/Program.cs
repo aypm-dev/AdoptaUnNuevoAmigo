@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Abstracciones.Comunes;
 using AdopcionAPI.Errores;
 using DA;
+using DA.Seed;
 using Flujo;
 using Scalar.AspNetCore;
 
@@ -32,6 +33,7 @@ app.UseStatusCodePages();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    await AdopcionSeeder.SeedAsync(app.Services);
     app.MapOpenApi();
     app.MapScalarApiReference();
 }

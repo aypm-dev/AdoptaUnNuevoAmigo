@@ -7,7 +7,7 @@ using System.Text;
 
 namespace DA.VisitasDomiciliarias
 {
-    public class VisitaConfiguracion
+    public class VisitaConfiguracion : IEntityTypeConfiguration<VisitaDomiciliaria>
     {
 
         public void Configure(EntityTypeBuilder<VisitaDomiciliaria> b)

@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "API + Web",
+    "Projects": [
+      {
+        "Path": "AdopcionAPI\\AdopcionAPI.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      },
+      {
+        "Path": "AdopcionWeb\\AdopcionWeb.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      }
+    ]
+  }
+]

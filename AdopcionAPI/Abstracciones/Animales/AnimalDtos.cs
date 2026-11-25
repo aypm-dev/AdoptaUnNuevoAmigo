@@ -34,6 +34,12 @@ namespace Abstracciones.Animales
             public DateTime FechaNacimiento { get; set; }
 
             public bool Activo { get; set; } = true;
+
+            [StringLength(500, ErrorMessage = "La URL de la foto no puede superar los 500 caracteres.")]
+            public string? FotoUrl { get; set; }
+
+            [StringLength(1000, ErrorMessage = "La descripción no puede superar los 1000 caracteres.")]
+            public string? Descripcion { get; set; }
         }
 
         public class AnimalActualizarDTO : AnimalCrearDTO { }
@@ -48,7 +54,9 @@ namespace Abstracciones.Animales
             string Esterilizado,
             string? RazaNombre,
             bool Activo,
-            EstadoAnimal Estado
+            EstadoAnimal Estado,
+            string? FotoUrl = null,
+            string? Descripcion = null
         );
 
         public class AnimalFiltro : ParametrosPaginacion

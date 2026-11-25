@@ -46,7 +46,9 @@ namespace Flujo.Animales
                 Tamanio = dto.Tamanio.Trim(),
                 RazaId = dto.RazaId,
                 Activo = dto.Activo,
-                FechaNacimiento = dto.FechaNacimiento
+                FechaNacimiento = dto.FechaNacimiento,
+                FotoUrl = dto.FotoUrl?.Trim(),
+                Descripcion = dto.Descripcion?.Trim()
             }, ct);
 
             if (!actualizado) throw new NoEncontradoException("Animal", id);
@@ -67,6 +69,8 @@ namespace Flujo.Animales
                 Tamanio = dto.Tamanio.Trim(),
                 RazaId = dto.RazaId,
                 FechaNacimiento = dto.FechaNacimiento,
+                FotoUrl = dto.FotoUrl?.Trim(),
+                Descripcion = dto.Descripcion?.Trim()
             };
 
             await _animalDA.AgregarAsync(animal, ct);
