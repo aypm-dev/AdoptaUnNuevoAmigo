@@ -1,16 +1,18 @@
-using Abstracciones.Especies;
+using System.Text.Json.Serialization;
+using Abstracciones.Comunes;
 using AdopcionAPI.Errores;
 using DA;
-using DA.Contexto.AdopcionContexto;
-using Flujo.Especies;
-using Microsoft.EntityFrameworkCore;
+using Flujo;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -18,14 +20,9 @@ builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ManejadorExcepcionesGlobal>();
 
-builder.Services.AddScoped<IEspecieDA, EspecieDA>();
-builder.Services.AddScoped<IEspecieFlujo, EspecieFlujo>();
-
-var cadenaConexion = builder.Configuration.GetConnectionString("Adopcion")
-    ?? throw new InvalidOperationException("Falta la cadena de conexión para Adopcion en la configuracion");
-
-builder.Services.AddDbContext<AdopcionContexto>(opciones =>
-    opciones.UseSqlServer(cadenaConexion));
+// Registro modular de dependencias en capas
+builder.Services.AddDatos(builder.Configuration);
+builder.Services.AddFlujo();
 
 var app = builder.Build();
 
@@ -38,6 +35,15 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
+
+// Endpoint de salud (200 si la base contesta, 503 si no)
+app.MapGet("/salud", async (ISaludBaseDatos salud, CancellationToken ct) =>
+        await salud.EstaDisponibleAsync(ct)
+            ? Results.Ok(new { estado = "ok", baseDeDatos = "disponible" })
+            : Results.Json(new { estado = "degradado", baseDeDatos = "no disponible" },
+                statusCode: StatusCodes.Status503ServiceUnavailable))
+    .WithTags("Operación")
+    .AllowAnonymous();
 
 app.UseAuthorization();
 

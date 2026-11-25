@@ -11,7 +11,7 @@ using static Abstracciones.Seguimientos.SeguimientoDtos;
 
 namespace DA.Seguimientos
 {
-    public class SeguimientoDA
+    public class SeguimientoDA : ISeguimientoDA
     {
 
         private readonly AdopcionContexto _ctx;
