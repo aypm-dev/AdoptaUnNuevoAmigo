@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ReactRoot>React\</ReactRoot>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(ReactRoot)node_modules\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.InertiaCore" Version="0.0.9" />
+    <PackageReference Include="Vite.AspNetCore" Version="2.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Abstracciones\Abstracciones.csproj" />
+  </ItemGroup>
+
+  <Target Name="EnsureReactDependencies" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(ReactRoot)node_modules') And '$(CI)' != 'true' ">
+    <Message Importance="high" Text="Installing React dependencies in $(ReactRoot)..." />
+    <Exec WorkingDirectory="$(ReactRoot)" Command="npm install" />
+  </Target>
+
+  <Target Name="BuildReactForPublish" BeforeTargets="ComputeFilesToPublish">
+    <Exec WorkingDirectory="$(ReactRoot)" Command="npm install" Condition="!Exists('$(ReactRoot)node_modules')" />
+    <Exec WorkingDirectory="$(ReactRoot)" Command="npm run build" />
+  </Target>
+
+</Project>

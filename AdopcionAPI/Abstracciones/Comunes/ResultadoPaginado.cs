@@ -1,0 +1,17 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Abstracciones.Comunes
+{
+    public class ResultadoPaginado<T>
+    {
+        
+        public IReadOnlyList<T> Items { get; init; } = Array.Empty<T>();
+        public int Total { get; init; }
+        public int Pagina { get; init; }
+        public int Tamano { get; init; }
+        public int TotalPaginas => Tamano <= 0 ? 0 : (int)Math.Ceiling(Total / (double)Tamano);
+
+    }
+}
