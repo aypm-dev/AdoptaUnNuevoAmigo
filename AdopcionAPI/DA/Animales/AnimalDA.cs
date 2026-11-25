@@ -35,6 +35,8 @@ namespace DA.Animales
             existente.RazaId = datos.RazaId;
             existente.FechaNacimiento = datos.FechaNacimiento;
             existente.Activo = datos.Activo;
+            existente.FotoUrl = datos.FotoUrl;
+            existente.Descripcion = datos.Descripcion;
 
             try
             {
@@ -111,6 +113,6 @@ namespace DA.Animales
         }
 
         public Task<Animal?> ObtenerPorIdAsync(int id, CancellationToken ct) =>
-        _animalContexto.Animales.AsNoTracking().FirstOrDefaultAsync(a => a.IdAnimal == id, ct);
+        _animalContexto.Animales.AsNoTracking().Include(a => a.Raza).FirstOrDefaultAsync(a => a.IdAnimal == id, ct);
     }
 }

@@ -26,5 +26,8 @@ namespace Abstracciones.Animales
 
         public EstadoAnimal Estado { get; set; } = EstadoAnimal.Disponible;
 
+        public string? FotoUrl { get; set; }
+        public string? Descripcion { get; set; }
+
     }
 }

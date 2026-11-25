@@ -24,6 +24,12 @@ namespace Abstracciones.Animales
             public DateTime FechaNacimiento { get; set; }
 
             public bool Activo { get; set; }
+
+            [StringLength(500)]
+            public string? FotoUrl { get; set; }
+
+            [StringLength(1000)]
+            public string? Descripcion { get; set; }
         }
 
         public class AnimalActualizarDTO : AnimalCrearDTO { }
@@ -39,7 +45,9 @@ namespace Abstracciones.Animales
             string Esterilizado,
             string? RazaNombre,
             bool Activo,
-            EstadoAnimal Estado
+            EstadoAnimal Estado,
+            string? FotoUrl = null,
+            string? Descripcion = null
         );
 
         public class AnimalFiltro : ParametrosPaginacion

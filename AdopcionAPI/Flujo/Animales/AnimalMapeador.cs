@@ -21,7 +21,9 @@ namespace Flujo.Animales
          a.Esterilizado,
          a.Raza?.Nombre,
          a.Activo,
-         a.Estado);
+         a.Estado,
+         a.FotoUrl,
+         a.Descripcion);
 
     }
 }
