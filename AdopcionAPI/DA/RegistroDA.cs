@@ -29,6 +29,7 @@ using DA.VisitasDomiciliarias;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace DA;
 
@@ -69,5 +70,56 @@ public static class RegistroDA
         servicios.AddScoped<ISaludBaseDatos, SaludBaseDatos>();
 
         return servicios;
+    }
+
+    /// <summary>
+    /// Aplica las migraciones pendientes al arrancar (cuando Base:MigrarAlIniciar = true).
+    /// Imprime el servidor y nombre de la base de datos sin exponer contraseñas ni credenciales.
+    /// </summary>
+    public static async Task AplicarMigracionesAsync(this IServiceProvider servicios, CancellationToken ct = default)
+    {
+        using var alcance = servicios.CreateScope();
+        var bitacora = alcance.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Migraciones");
+
+        await MigrarContextoAsync<AdopcionContexto>(alcance.ServiceProvider, bitacora, ct);
+        await MigrarContextoAsync<UsuarioContexto>(alcance.ServiceProvider, bitacora, ct);
+    }
+
+    private static async Task MigrarContextoAsync<TContext>(
+        IServiceProvider proveedor,
+        ILogger bitacora,
+        CancellationToken ct) where TContext : DbContext
+    {
+        var contexto = proveedor.GetRequiredService<TContext>();
+        var nombreContexto = typeof(TContext).Name;
+        var migracionesDefinidas = contexto.Database.GetMigrations();
+
+        if (!migracionesDefinidas.Any())
+        {
+            bitacora.LogInformation("[{Contexto}] Sin migraciones definidas; se omite MigrateAsync.", nombreContexto);
+            return;
+        }
+
+        var conexion = contexto.Database.GetDbConnection();
+        bitacora.LogInformation(
+            "[{Contexto}] Verificando migraciones -> Servidor: {Servidor} | Base: {Base}",
+            nombreContexto,
+            conexion.DataSource,
+            conexion.Database);
+
+        var pendientes = (await contexto.Database.GetPendingMigrationsAsync(ct)).ToList();
+        if (pendientes.Count == 0)
+        {
+            bitacora.LogInformation("[{Contexto}] Sin migraciones pendientes.", nombreContexto);
+        }
+        else
+        {
+            bitacora.LogInformation(
+                "[{Contexto}] Aplicando migraciones pendientes: {Lista}",
+                nombreContexto,
+                string.Join(", ", pendientes));
+        }
+
+        await contexto.Database.MigrateAsync(ct);
     }
 }

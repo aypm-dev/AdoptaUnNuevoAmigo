@@ -27,6 +27,28 @@ builder.Services.AddFlujo();
 
 var app = builder.Build();
 
+// ---------- Migración automática ----------
+// Controlada por Base:MigrarAlIniciar (true por defecto en desarrollo; configurable por variable de entorno en Azure).
+// Va ANTES del comando --seed para garantizar que las tablas existan.
+if (app.Configuration.GetValue<bool>("Base:MigrarAlIniciar"))
+{
+    try
+    {
+        await app.Services.AplicarMigracionesAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogCritical(ex, "Falló la migración automática al iniciar. Revise la cadena de conexión.");
+    }
+}
+
+// ---------- Comando de semilla: dotnet run --project AdopcionAPI -- --seed ----------
+if (args.Contains("--seed"))
+{
+    await AdopcionSeeder.SeedAsync(app.Services);
+    return;
+}
+
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
