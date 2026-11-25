@@ -9,7 +9,7 @@ using static Abstracciones.Consultas.ConsultaDtos;
 
 namespace DA.Consultas
 {
-    public class ConsultaDA
+    public class ConsultaDA : IConsultaDA
     {
 
         private readonly AdopcionContexto _ctx;

@@ -1,0 +1,11 @@
+import type { components } from "@/types/api.generated";
+
+export type AnimalDto = components["schemas"]["AnimalDto"];
+export type ConsultaDto = components["schemas"]["ConsultaDto"];
+export type EspecieDto = components["schemas"]["EspecieDto"];
+export type RazaDto = components["schemas"]["RazaDto"];
+export type VacunacionDto = components["schemas"]["VacunacionDto"];
+export type SolicitudDto = components["schemas"]["SolicitudDto"];
+export type VisitaDto = components["schemas"]["VisitaDto"];
+export type SeguimientoDto = components["schemas"]["SeguimientoDto"];
+export type AlertaDto = components["schemas"]["AlertaDto"];

@@ -25,9 +25,12 @@ public static class AdopcionSeeder
 
         await ctx.Database.MigrateAsync(ct);
 
-        // If core test data already exists, skip seeding so it is completely idempotent.
+        // If core test data already exists, backfill FotoUrl/Descripcion if missing, then exit.
         if (await ctx.Animales.AnyAsync(ct))
+        {
+            await BackfillDescripcionesYFotosAsync(ctx, ct);
             return;
+        }
 
         var ahora = DateTime.UtcNow;
 
@@ -195,5 +198,63 @@ public static class AdopcionSeeder
         });
 
         await ctx.SaveChangesAsync(ct);
+        await BackfillDescripcionesYFotosAsync(ctx, ct);
+    }
+
+    private static async Task BackfillDescripcionesYFotosAsync(AdopcionContexto ctx, CancellationToken ct)
+    {
+        var datos = new Dictionary<string, (string FotoUrl, string Descripcion)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Luna"] = (
+                "https://placedog.net/800/600?id=15",
+                "Luna espera una familia con la que empezar una nueva etapa. Incluso luego de ser encontrada en las calles de Guadalupe, es amigable con todos porque jamás negaría unas caricias."
+            ),
+            ["Caramelo"] = (
+                "https://placedog.net/800/600?id=7",
+                "Juguetón, curioso y parte de la camada de Canelita. Le encantan los paseos cortos, correr en el patio y dormir la siesta cerca de su familia."
+            ),
+            ["Toby"] = (
+                "https://placedog.net/800/600?id=12",
+                "Muy cariñoso y obediente. Aprende rápido con refuerzo positivo y disfruta las caminatas por el parque."
+            ),
+            ["Mia"] = (
+                "https://cataas.com/cat?width=800&height=600&v=4",
+                "Rescatada recientemente y en recuperación nutricional. Es dulce, tranquila y le gusta descansar en lugares cálidos."
+            ),
+            ["Canela"] = (
+                "https://cataas.com/cat?width=800&height=600&v=5",
+                "Gata siamés sociable, curiosa y muy limpia. Se adapta rápido a interiores tranquilos."
+            ),
+            ["Luisito"] = (
+                "https://placedog.net/800/600?id=3",
+                "Perro pequeño lleno de energía y muy apegado a su nueva familia."
+            ),
+            ["Miguelito"] = (
+                "https://placedog.net/800/600?id=9",
+                "Compañero fiel, tranquilo y muy amigable con visitas."
+            ),
+            ["Rocky"] = (
+                "https://placedog.net/800/600?id=18",
+                "Labrador noble y juguetón que ya disfruta de su hogar definitivo."
+            ),
+        };
+
+        var sinDatos = await ctx.Animales
+            .Where(a => a.Descripcion == null || a.FotoUrl == null)
+            .ToListAsync(ct);
+
+        var cambio = false;
+        foreach (var animal in sinDatos)
+        {
+            if (datos.TryGetValue(animal.Nombre, out var info))
+            {
+                animal.FotoUrl ??= info.FotoUrl;
+                animal.Descripcion ??= info.Descripcion;
+                cambio = true;
+            }
+        }
+
+        if (cambio)
+            await ctx.SaveChangesAsync(ct);
     }
 }

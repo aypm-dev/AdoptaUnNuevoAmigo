@@ -23,6 +23,14 @@ builder.Services.AddHttpClient<EspeciesApiClient>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
 });
+builder.Services.AddHttpClient<CatalogoApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+});
+builder.Services.AddHttpClient<AnimalesApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+});
 
 var app = builder.Build();
 

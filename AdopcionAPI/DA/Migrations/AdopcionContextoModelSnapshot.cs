@@ -77,6 +77,10 @@ namespace DA.Migrations
                     b.Property<bool>("Activo")
                         .HasColumnType("bit");
 
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<int>("Estado")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -89,6 +93,10 @@ namespace DA.Migrations
 
                     b.Property<DateTime>("FechaNacimiento")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("FotoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
