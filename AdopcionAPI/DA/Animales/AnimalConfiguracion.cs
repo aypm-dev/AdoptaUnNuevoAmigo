@@ -34,7 +34,11 @@ namespace DA.Animales
                     .WithMany(p => p.Animales)
                     .HasForeignKey(d => d.RazaId)
                     .OnDelete(DeleteBehavior.Restrict);
-                b.Property(e => e.Estado).IsRequired().HasDefaultValue(EstadoAnimal.Disponible);
+                b.Property(e => e.Estado)
+                    .HasConversion<string>()
+                    .HasMaxLength(20)
+                    .IsRequired()
+                    .HasDefaultValue(EstadoAnimal.Disponible);
                 b.Property(e => e.FotoUrl).HasMaxLength(500);
                 b.Property(e => e.Descripcion).HasMaxLength(1000);
         }
