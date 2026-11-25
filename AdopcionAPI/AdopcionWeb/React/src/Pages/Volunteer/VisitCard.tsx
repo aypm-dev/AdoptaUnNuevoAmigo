@@ -3,7 +3,6 @@ import { router } from "@inertiajs/react";
 import { Button, Card, CardBody, Chip, Textarea } from "@heroui/react";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { PawIcon } from "@/components/PawIcon";
-import { getResultadoVisitaLabel } from "@/lib/enumHelpers";
 import {
   formatAge,
   formatDate,
@@ -44,7 +43,7 @@ export function VisitCard({
     ? formatVaccinationSummary(animal.idAnimal, animal.sexo, vacunaciones)
     : null;
 
-  const resultadoLabel = getResultadoVisitaLabel(visita.resultado);
+  const resultadoLabel = visita.resultado;
   const isPending = resultadoLabel === "Pendiente";
   const isFutureDate = isPending && new Date(visita.fecha).getTime() > Date.now();
 

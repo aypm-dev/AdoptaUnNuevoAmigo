@@ -20,9 +20,8 @@ import {
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { ResponsiveTableScroll } from "@/components/ResponsiveTableScroll";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import { getEstadoAnimalLabel, type EstadoAnimalLabel } from "@/lib/enumHelpers";
 import { formatAge } from "@/lib/petHelpers";
-import type { AnimalDto, EspecieDto, RazaDto } from "@/types/models";
+import type { AnimalDto, EspecieDto, EstadoAnimal, RazaDto } from "@/types/models";
 
 interface InventarioPageProps {
   animales: AnimalDto[];
@@ -37,7 +36,7 @@ interface InventarioPageProps {
 const PAGE_SIZE = 7;
 
 const ESTADO_ANIMAL_UI: Record<
-  EstadoAnimalLabel,
+  EstadoAnimal,
   { label: string; color: "success" | "warning" | "primary" | "secondary" | "danger" }
 > = {
   Disponible: { label: "Disponible", color: "success" },
@@ -89,21 +88,17 @@ export default function InventarioPage({
 
   // KPIs
   const activos = animales.filter((a) => a.activo);
-  const disponiblesCount = activos.filter(
-    (a) => getEstadoAnimalLabel(a.estado) === "Disponible"
+  const disponiblesCount = activos.filter((a) => a.estado === "Disponible").length;
+  const enProcesoCount = activos.filter(
+    (a) => a.estado === "EnProceso" || a.estado === "EnSeguimiento"
   ).length;
-  const enProcesoCount = activos.filter((a) => {
-    const e = getEstadoAnimalLabel(a.estado);
-    return e === "EnProceso" || e === "EnSeguimiento";
-  }).length;
   const noAdoptablesCount = activos.filter(
-    (a) => getEstadoAnimalLabel(a.estado) === "NoAdoptable"
+    (a) => a.estado === "NoAdoptable"
   ).length;
 
   const query = searchQuery.trim().toLowerCase();
   const filtered = activos.filter((a) => {
-    const estado = getEstadoAnimalLabel(a.estado);
-    const matchesEstado = estadoFilter === "todos" || estado === estadoFilter;
+    const matchesEstado = estadoFilter === "todos" || a.estado === estadoFilter;
     const matchesQuery =
       !query ||
       a.nombre.toLowerCase().includes(query) ||
@@ -329,8 +324,7 @@ export default function InventarioPage({
                   </TableHeader>
                   <TableBody emptyContent="No hay animales que coincidan con la búsqueda.">
                     {pageItems.map((animal) => {
-                      const estado = getEstadoAnimalLabel(animal.estado);
-                      const ui = ESTADO_ANIMAL_UI[estado];
+                      const ui = ESTADO_ANIMAL_UI[animal.estado];
 
                       return (
                         <TableRow key={String(animal.idAnimal)}>

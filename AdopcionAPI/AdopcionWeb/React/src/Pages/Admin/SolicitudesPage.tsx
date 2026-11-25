@@ -22,11 +22,6 @@ import { ConfirmModal } from "@/components/ConfirmModal";
 import { ResponsiveTableScroll } from "@/components/ResponsiveTableScroll";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
 import {
-  getEstadoSolicitudLabel,
-  getResultadoVisitaLabel,
-  type EstadoSolicitudLabel,
-} from "@/lib/enumHelpers";
-import {
   formatAge,
   formatDate,
   formatVaccinationSummary,
@@ -35,6 +30,7 @@ import {
 import type {
   AdoptanteDto,
   AnimalDto,
+  EstadoSolicitud,
   SolicitudDto,
   VacunacionDto,
   VisitaDto,
@@ -58,12 +54,12 @@ interface SolicitudesPageProps {
   apiError?: string | null;
 }
 
-type EstadoFilter = "todas" | "pendiente_visita" | EstadoSolicitudLabel;
+type EstadoFilter = "todas" | "pendiente_visita" | EstadoSolicitud;
 
 const PAGE_SIZE = 6;
 
 const ESTADO_UI: Record<
-  EstadoSolicitudLabel,
+  EstadoSolicitud,
   { label: string; color: "warning" | "primary" | "secondary" | "success" | "danger" | "default" }
 > = {
   Enviada: { label: "Enviada", color: "warning" },
@@ -106,7 +102,7 @@ export default function SolicitudesPage({
   // Confirm modal state for state transitions
   const [pendingStateChange, setPendingStateChange] = useState<{
     solicitudId: number;
-    estado: EstadoSolicitudLabel;
+    estado: EstadoSolicitud;
     petName: string;
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -128,13 +124,12 @@ export default function SolicitudesPage({
   const query = searchQuery.trim().toLowerCase();
 
   const filtered = solicitudes.filter((s) => {
-    const estado = getEstadoSolicitudLabel(s.estado);
     const matchesStatus =
       statusFilter === "todas"
         ? true
         : statusFilter === "pendiente_visita"
-          ? estado === "Enviada" || estado === "EnRevision"
-          : estado === statusFilter;
+          ? s.estado === "Enviada" || s.estado === "EnRevision"
+          : s.estado === statusFilter;
 
     const animal = animalById.get(String(s.animalId));
     const adoptante = adoptanteById.get(String(s.adoptanteId));
@@ -169,12 +164,8 @@ export default function SolicitudesPage({
   const selectedVisit = selectedSolicitud
     ? latestVisitBySolicitud.get(String(selectedSolicitud.idSolicitud))
     : undefined;
-  const selectedEstado = selectedSolicitud
-    ? getEstadoSolicitudLabel(selectedSolicitud.estado)
-    : null;
-  const selectedVisitResult = selectedVisit
-    ? getResultadoVisitaLabel(selectedVisit.resultado)
-    : null;
+  const selectedEstado = selectedSolicitud ? selectedSolicitud.estado : null;
+  const selectedVisitResult = selectedVisit ? selectedVisit.resultado : null;
 
   const handleConfirmStateChange = () => {
     if (!pendingStateChange) return;
@@ -347,7 +338,7 @@ export default function SolicitudesPage({
                     const animal = animalById.get(String(s.animalId));
                     const adoptante = adoptanteById.get(String(s.adoptanteId));
                     const visit = latestVisitBySolicitud.get(String(s.idSolicitud));
-                    const estado = getEstadoSolicitudLabel(s.estado);
+                    const estado = s.estado;
                     const estadoUi = ESTADO_UI[estado];
                     const petName = animal?.nombre ?? s.animalNombre ?? `#${s.animalId}`;
 
@@ -385,7 +376,7 @@ export default function SolicitudesPage({
                             <div className="flex flex-col gap-0.5">
                               <span>{formatDate(visit.fecha)}</span>
                               <span className="text-[11px] font-medium">
-                                {getResultadoVisitaLabel(visit.resultado)}
+                                {visit.resultado}
                               </span>
                             </div>
                           ) : (

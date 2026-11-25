@@ -11,7 +11,7 @@ import {
 } from "@heroui/react";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { PawIcon } from "@/components/PawIcon";
-import { getEstadoSeguimientoLabel, getHitoDays } from "@/lib/enumHelpers";
+import { getHitoDays } from "@/lib/enumHelpers";
 import { formatDate, getPetImageUrl } from "@/lib/petHelpers";
 import type {
   AdoptanteDto,
@@ -54,26 +54,25 @@ export function FollowUpGroupCard({
     : `https://placehold.co/600x400/EDE8DF/52525B?text=${encodeURIComponent(petName)}`;
 
   const completedDays = sorted.reduce((max, s) => {
-    if (getEstadoSeguimientoLabel(s.estado) === "Favorable") {
+    if (s.estado === "Favorable") {
       return Math.max(max, getHitoDays(s.hito));
     }
     return max;
   }, 0);
 
-  const completedMilestones = sorted.filter((s) => {
-    const label = getEstadoSeguimientoLabel(s.estado);
-    return label === "Favorable" || label === "Desfavorable" || label === "Omitido";
-  });
+  const completedMilestones = sorted.filter(
+    (s) =>
+      s.estado === "Favorable" ||
+      s.estado === "Desfavorable" ||
+      s.estado === "Omitido"
+  );
 
-  const activeMilestone = sorted.find((s) => {
-    const label = getEstadoSeguimientoLabel(s.estado);
-    return label === "Pendiente" || label === "Vencido";
-  });
+  const activeMilestone = sorted.find(
+    (s) => s.estado === "Pendiente" || s.estado === "Vencido"
+  );
 
   const activeDays = activeMilestone ? getHitoDays(activeMilestone.hito) : 0;
-  const activeLabel = activeMilestone
-    ? getEstadoSeguimientoLabel(activeMilestone.estado)
-    : null;
+  const activeLabel = activeMilestone ? activeMilestone.estado : null;
   const isFinalMilestone = activeDays === 90;
   const isActiveFuture =
     activeMilestone !== undefined &&
@@ -159,7 +158,7 @@ export function FollowUpGroupCard({
             <div className="flex flex-col divide-y divide-black/5">
               {completedMilestones.map((s) => {
                 const days = getHitoDays(s.hito);
-                const label = getEstadoSeguimientoLabel(s.estado);
+                const label = s.estado;
                 const isFavorable = label === "Favorable";
 
                 return (

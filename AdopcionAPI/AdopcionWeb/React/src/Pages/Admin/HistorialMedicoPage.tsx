@@ -20,12 +20,7 @@ import {
 } from "@heroui/react";
 import { ResponsiveTableScroll } from "@/components/ResponsiveTableScroll";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import {
-  getEstadoAnimalLabel,
-  getEstadoSeguimientoLabel,
-  getEstadoSolicitudLabel,
-  getHitoDays,
-} from "@/lib/enumHelpers";
+import { getHitoDays } from "@/lib/enumHelpers";
 import { formatAge, formatDate, getPetImageUrl } from "@/lib/petHelpers";
 import type {
   AnimalDto,
@@ -285,8 +280,7 @@ export default function HistorialMedicoPage({
               <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <Chip size="sm" variant="flat" color="warning">
-                    {ESTADO_ANIMAL_TEXT[getEstadoAnimalLabel(selectedAnimal.estado)] ??
-                      getEstadoAnimalLabel(selectedAnimal.estado)}
+                    {ESTADO_ANIMAL_TEXT[selectedAnimal.estado] ?? selectedAnimal.estado}
                   </Chip>
                   <Chip size="sm" variant="flat" color="success">
                     {obligatoriasAlDia}/{obligatorias.length} vacunas obligatorias al día
@@ -672,7 +666,7 @@ export default function HistorialMedicoPage({
                                   {sol.adoptanteNombre ?? `Adoptante #${sol.adoptanteId}`}
                                 </span>
                                 <Chip size="sm" variant="flat" color="warning">
-                                  {getEstadoSolicitudLabel(sol.estado)}
+                                  {sol.estado}
                                 </Chip>
                               </div>
                               <p className="mt-1 text-xs text-[#52525B]">
@@ -684,25 +678,23 @@ export default function HistorialMedicoPage({
 
                               {segs.length > 0 && (
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                  {segs.map((s) => {
-                                    const label = getEstadoSeguimientoLabel(s.estado);
-                                    return (
-                                      <Chip
-                                        key={String(s.idSeguimiento)}
-                                        size="sm"
-                                        variant="flat"
-                                        color={
-                                          label === "Favorable"
-                                            ? "success"
-                                            : label === "Vencido" || label === "Desfavorable"
-                                              ? "danger"
-                                              : "warning"
-                                        }
-                                      >
-                                        Día {getHitoDays(s.hito)}: {label}
-                                      </Chip>
-                                    );
-                                  })}
+                                  {segs.map((s) => (
+                                    <Chip
+                                      key={String(s.idSeguimiento)}
+                                      size="sm"
+                                      variant="flat"
+                                      color={
+                                        s.estado === "Favorable"
+                                          ? "success"
+                                          : s.estado === "Vencido" ||
+                                              s.estado === "Desfavorable"
+                                            ? "danger"
+                                            : "warning"
+                                      }
+                                    >
+                                      Día {getHitoDays(s.hito)}: {s.estado}
+                                    </Chip>
+                                  ))}
                                 </div>
                               )}
                             </div>

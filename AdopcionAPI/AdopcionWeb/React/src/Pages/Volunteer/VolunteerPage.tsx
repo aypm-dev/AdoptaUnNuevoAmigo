@@ -16,10 +16,6 @@ import {
 } from "@heroui/react";
 import { Footer } from "@/components/Footer";
 import { PawIcon } from "@/components/PawIcon";
-import {
-  getEstadoSeguimientoLabel,
-  getResultadoVisitaLabel,
-} from "@/lib/enumHelpers";
 import { FollowUpGroupCard } from "@/Pages/Volunteer/FollowUpGroupCard";
 import { VisitCard } from "@/Pages/Volunteer/VisitCard";
 import type {
@@ -104,14 +100,10 @@ export default function VolunteerPage({
   };
 
   const pendingVisits = visitas.filter(
-    (v) =>
-      getResultadoVisitaLabel(v.resultado) === "Pendiente" &&
-      matchesSearch(v.solicitudId)
+    (v) => v.resultado === "Pendiente" && matchesSearch(v.solicitudId)
   );
   const completedVisits = visitas.filter(
-    (v) =>
-      getResultadoVisitaLabel(v.resultado) !== "Pendiente" &&
-      matchesSearch(v.solicitudId)
+    (v) => v.resultado !== "Pendiente" && matchesSearch(v.solicitudId)
   );
 
   const followUpGroupsMap = new Map<number, SeguimientoDto[]>();
@@ -126,13 +118,10 @@ export default function VolunteerPage({
     ([solicitudId, items]) => ({
       solicitudId,
       items,
-      hasOpen: items.some((i) => {
-        const label = getEstadoSeguimientoLabel(i.estado);
-        return label === "Pendiente" || label === "Vencido";
-      }),
-      hasOverdue: items.some(
-        (i) => getEstadoSeguimientoLabel(i.estado) === "Vencido"
+      hasOpen: items.some(
+        (i) => i.estado === "Pendiente" || i.estado === "Vencido"
       ),
+      hasOverdue: items.some((i) => i.estado === "Vencido"),
     })
   );
 
@@ -147,11 +136,11 @@ export default function VolunteerPage({
   );
 
   const totalPendingVisitsCount = visitas.filter(
-    (v) => getResultadoVisitaLabel(v.resultado) === "Pendiente"
+    (v) => v.resultado === "Pendiente"
   ).length;
   const totalOpenFollowUpsCount = allFollowUpGroups.filter((g) => g.hasOpen).length;
   const totalHistoryCount =
-    visitas.filter((v) => getResultadoVisitaLabel(v.resultado) !== "Pendiente").length +
+    visitas.filter((v) => v.resultado !== "Pendiente").length +
     allFollowUpGroups.filter((g) => !g.hasOpen).length;
 
   const paginate = <T,>(items: T[]) => {

@@ -2092,6 +2092,95 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/Usuarios/{id}/rol": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UsuarioCambiarRolDto"];
+                    "text/json": components["schemas"]["UsuarioCambiarRolDto"];
+                    "application/*+json": components["schemas"]["UsuarioCambiarRolDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["UsuarioDto"];
+                        "application/json": components["schemas"]["UsuarioDto"];
+                        "text/json": components["schemas"]["UsuarioDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ValidationProblemDetails"];
+                        "application/json": components["schemas"]["ValidationProblemDetails"];
+                        "text/json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/api/Vacunaciones": {
         parameters: {
             query?: never;
@@ -2771,10 +2860,14 @@ export interface components {
             /** Format: date-time */
             fechaRegistro: string;
         };
-        EstadoAnimal: number;
-        EstadoSeguimiento: number;
-        EstadoSolicitud: number;
-        HitoSeguimiento: number;
+        /** @enum {unknown} */
+        EstadoAnimal: "Disponible" | "EnProceso" | "EnSeguimiento" | "Adoptado" | "NoAdoptable";
+        /** @enum {unknown} */
+        EstadoSeguimiento: "Pendiente" | "Favorable" | "Desfavorable" | "Vencido" | "Omitido";
+        /** @enum {unknown} */
+        EstadoSolicitud: "Enviada" | "EnRevision" | "VisitaProgramada" | "Aprobada" | "Rechazada" | "Cancelada";
+        /** @enum {unknown} */
+        HitoSeguimiento: "Dias30" | "Dias60" | "Dias90";
         LoginDto: {
             correo: string;
             password: string;
@@ -2804,8 +2897,10 @@ export interface components {
             /** Format: date-time */
             fechaRegistro: string;
         };
-        ResultadoVisita: number;
-        RolUsuario: number;
+        /** @enum {unknown} */
+        ResultadoVisita: "Pendiente" | "Favorable" | "Desfavorable";
+        /** @enum {unknown} */
+        RolUsuario: "Administrador" | "Coordinador" | "Veterinario" | "Voluntario";
         SeguimientoDto: {
             /** Format: int32 */
             idSeguimiento: number | string;
@@ -2894,6 +2989,9 @@ export interface components {
             activo: boolean;
             /** Format: date-time */
             fechaRegistro: string;
+        };
+        UsuarioCambiarRolDto: {
+            rol?: components["schemas"]["RolUsuario"];
         };
         UsuarioCrearDto: {
             nombre: string;

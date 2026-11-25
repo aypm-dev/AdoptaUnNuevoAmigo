@@ -17,10 +17,6 @@ import {
 } from "@heroui/react";
 import { ResponsiveTableScroll } from "@/components/ResponsiveTableScroll";
 import { DashboardLayout } from "@/layouts/DashboardLayout";
-import {
-  getEstadoSeguimientoLabel,
-  getEstadoSolicitudLabel,
-} from "@/lib/enumHelpers";
 import type {
   AdoptanteDto,
   AnimalDto,
@@ -77,9 +73,7 @@ export default function ReportesPage({
   const nowMs = now.getTime();
 
   // 1. Adopciones aprobadas
-  const aprobadas = solicitudes.filter(
-    (s) => getEstadoSolicitudLabel(s.estado) === "Aprobada"
-  );
+  const aprobadas = solicitudes.filter((s) => s.estado === "Aprobada");
 
   const aprobadasFiltradas = aprobadas.filter((s) => {
     const refDate = new Date(s.fechaResolucion ?? s.fechaSolicitud);
@@ -96,9 +90,8 @@ export default function ReportesPage({
 
   // 2. Seguimientos vencidos
   const seguimientosVencidos = seguimientos.filter((s) => {
-    const estado = getEstadoSeguimientoLabel(s.estado);
-    if (estado === "Vencido") return true;
-    if (estado === "Pendiente") {
+    if (s.estado === "Vencido") return true;
+    if (s.estado === "Pendiente") {
       return new Date(s.fechaProgramada).getTime() < nowMs;
     }
     return false;

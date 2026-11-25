@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using AdopcionWeb.Clients;
 using AdopcionWeb.Middleware;
 using InertiaCore.Extensions;
@@ -7,7 +8,9 @@ using Vite.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllersWithViews();
+builder.Services
+    .AddControllersWithViews()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddInertia(options =>
 {
     options.RootView = "~/Views/App.cshtml";
