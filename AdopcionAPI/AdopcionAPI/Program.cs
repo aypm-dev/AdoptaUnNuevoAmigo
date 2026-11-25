@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 using Abstracciones.Comunes;
+using Abstracciones.Seguimientos;
+using Abstracciones.Solicitudes;
 using AdopcionAPI.Errores;
 using DA;
 using DA.Seed;
@@ -21,7 +23,9 @@ builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ManejadorExcepcionesGlobal>();
 
-// Registro modular de dependencias en capas
+// Registro modular de dependencias en capas y patrón Options
+builder.Services.Configure<ReglasAdopcionOpciones>(builder.Configuration.GetSection("ReglasAdopcion"));
+builder.Services.Configure<SeguimientoOpciones>(builder.Configuration.GetSection(SeguimientoOpciones.Seccion));
 builder.Services.AddDatos(builder.Configuration);
 builder.Services.AddFlujo();
 
@@ -56,8 +60,13 @@ app.UseStatusCodePages();
 if (app.Environment.IsDevelopment())
 {
     await AdopcionSeeder.SeedAsync(app.Services);
-    app.MapOpenApi();
-    app.MapScalarApiReference();
+}
+
+// Documentación (OpenAPI + Scalar): siempre en Development; en Azure/Producción solo si Documentacion__Habilitar = true.
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Documentacion:Habilitar"))
+{
+    app.MapOpenApi().AllowAnonymous();
+    app.MapScalarApiReference().AllowAnonymous();
 }
 
 // Endpoint de salud (200 si la base contesta, 503 si no)

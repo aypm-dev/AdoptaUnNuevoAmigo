@@ -35,6 +35,7 @@ public static class RegistroFlujo
     {
         servicios.AddSingleton(TimeProvider.System);
         servicios.AddOptions<SeguimientoOpciones>();
+        servicios.AddOptions<ReglasAdopcionOpciones>();
 
         // Registro de servicios de Flujo con ciclo de vida Scoped
         servicios.AddScoped<IAdoptanteFlujo, AdoptanteFlujo>();
@@ -44,6 +45,7 @@ public static class RegistroFlujo
         servicios.AddScoped<IRazaFlujo, RazaFlujo>();
         servicios.AddScoped<ISeguimientoFlujo, SeguimientoFlujo>();
         servicios.AddScoped<IVencimientosSeguimientoFlujo, VencimientosSeguimientoFlujo>();
+        servicios.AddScoped<INotificadorCoordinador, NotificadorCoordinadorLog>();
         servicios.AddScoped<ISolicitudFlujo, SolicitudFlujo>();
         servicios.AddScoped<ITipoVacunaFlujo, TipoVacunaFlujo>();
         servicios.AddScoped<ITipoViviendaFlujo, TipoViviendaFlujo>();

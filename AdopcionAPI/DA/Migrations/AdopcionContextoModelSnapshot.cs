@@ -35,8 +35,8 @@ namespace DA.Migrations
 
                     b.Property<string>("Contacto")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<DateTime>("FechaRegistro")
                         .HasColumnType("datetime2");
@@ -61,6 +61,9 @@ namespace DA.Migrations
 
                     b.HasKey("IdAdoptante");
 
+                    b.HasIndex("Identificacion")
+                        .IsUnique();
+
                     b.HasIndex("TipoViviendaId");
 
                     b.ToTable("Adoptantes", (string)null);
@@ -81,10 +84,12 @@ namespace DA.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<int>("Estado")
+                    b.Property<string>("Estado")
+                        .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Disponible");
 
                     b.Property<string>("Esterilizado")
                         .IsRequired()
@@ -172,8 +177,8 @@ namespace DA.Migrations
 
                     b.Property<string>("Descripcion")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime>("FechaRegistro")
                         .HasColumnType("datetime2");
@@ -184,6 +189,9 @@ namespace DA.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("IdEspecie");
+
+                    b.HasIndex("Nombre")
+                        .IsUnique();
 
                     b.ToTable("Especies", (string)null);
                 });
@@ -217,6 +225,9 @@ namespace DA.Migrations
                     b.HasIndex("EspecieId");
 
                     b.HasIndex("FechaRegistro");
+
+                    b.HasIndex("EspecieId", "Nombre")
+                        .IsUnique();
 
                     b.ToTable("Razas", (string)null);
                 });
@@ -276,8 +287,10 @@ namespace DA.Migrations
                     b.Property<int>("SolicitudId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Tipo")
-                        .HasColumnType("int");
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.HasKey("IdEvento");
 
@@ -296,8 +309,10 @@ namespace DA.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdSeguimiento"));
 
-                    b.Property<int>("Estado")
-                        .HasColumnType("int");
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime>("FechaProgramada")
                         .HasColumnType("datetime2");
@@ -305,8 +320,10 @@ namespace DA.Migrations
                     b.Property<DateTime?>("FechaRealizada")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("Hito")
-                        .HasColumnType("int");
+                    b.Property<string>("Hito")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Observaciones")
                         .HasMaxLength(1000)
@@ -381,6 +398,9 @@ namespace DA.Migrations
 
                     b.HasKey("IdTipoVacuna");
 
+                    b.HasIndex("Nombre")
+                        .IsUnique();
+
                     b.ToTable("TiposVacunas", (string)null);
                 });
 
@@ -398,8 +418,8 @@ namespace DA.Migrations
 
                     b.Property<string>("Descripcion")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
                         .HasColumnName("DESCRIPCION");
 
                     b.Property<DateTime>("FechaRegistro")
@@ -412,6 +432,9 @@ namespace DA.Migrations
                         .HasColumnName("NOMBRE");
 
                     b.HasKey("IdTipoVivienda");
+
+                    b.HasIndex("Nombre")
+                        .IsUnique();
 
                     b.ToTable("TiposViviendas", (string)null);
                 });
@@ -459,11 +482,10 @@ namespace DA.Migrations
 
                     b.Property<string>("Diagnostico")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime>("FechaRegistro")
-                        .HasMaxLength(100)
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Nombre")
@@ -473,8 +495,8 @@ namespace DA.Migrations
 
                     b.Property<string>("Tratamiento")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.HasKey("IdVeterinaria");
 
@@ -548,7 +570,7 @@ namespace DA.Migrations
                     b.HasOne("Abstracciones.TiposViviendas.TipoVivienda", "TipoVivienda")
                         .WithMany("Adoptantes")
                         .HasForeignKey("TipoViviendaId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("TipoVivienda");
