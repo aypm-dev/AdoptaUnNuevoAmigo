@@ -1,0 +1,14 @@
+@using InertiaCore
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title inertia>Adopta Un Nuevo Amigo</title>
+    @await Inertia.Head(Model)
+</head>
+<body class="min-h-screen bg-background text-foreground antialiased">
+    @await Inertia.Html(Model)
+    <script type="module" vite-src="~/src/app.tsx"></script>
+</body>
+</html>

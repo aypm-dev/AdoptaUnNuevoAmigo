@@ -311,6 +311,10 @@ FakesAssemblies/
 .ntvs_analysis.dat
 node_modules/
 
+# Vite compiled output inside wwwroot
+AdopcionAPI/AdopcionWeb/wwwroot/assets/
+AdopcionAPI/AdopcionWeb/wwwroot/.vite/
+
 # Visual Studio 6 build log
 *.plg
 
