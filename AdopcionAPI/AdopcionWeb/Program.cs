@@ -51,6 +51,14 @@ builder.Services.AddHttpClient<AnimalesApiClient>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
 });
+builder.Services.AddHttpClient<SolicitudesApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+});
+builder.Services.AddHttpClient<VoluntarioApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+});
 
 // Cliente del login: NO lleva el handler, todavía no hay token.
 builder.Services.AddHttpClient<ICuentaApi, CuentaApi>(client =>

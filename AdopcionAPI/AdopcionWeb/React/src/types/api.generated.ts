@@ -4,6 +4,39 @@
  */
 
 export interface paths {
+    "/salud": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/Adoptantes": {
         parameters: {
             query?: never;
@@ -2426,9 +2459,9 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         AdoptanteActualizarDTO: {
-            identificacion?: string;
+            identificacion: string;
             nombre: string;
-            contacto?: string;
+            contacto: string;
             otrasMascotas?: string;
             /** Format: int32 */
             tipoViviendaId?: number | string;
@@ -2437,9 +2470,9 @@ export interface components {
             fechaRegistro?: string;
         };
         AdoptanteCrearDTO: {
-            identificacion?: string;
+            identificacion: string;
             nombre: string;
-            contacto?: string;
+            contacto: string;
             otrasMascotas?: string;
             /** Format: int32 */
             tipoViviendaId?: number | string;
@@ -2475,26 +2508,26 @@ export interface components {
         };
         AnimalActualizarDTO: {
             nombre: string;
-            sexo?: string;
-            esterilizado?: string;
-            tamanio?: string;
+            sexo: string;
+            esterilizado: string;
+            tamanio: string;
             /** Format: int32 */
             razaId?: number | string;
             /** Format: date-time */
-            fechaNacimiento?: string;
+            fechaNacimiento: string;
             activo?: boolean;
             fotoUrl?: null | string;
             descripcion?: null | string;
         };
         AnimalCrearDTO: {
             nombre: string;
-            sexo?: string;
-            esterilizado?: string;
-            tamanio?: string;
+            sexo: string;
+            esterilizado: string;
+            tamanio: string;
             /** Format: int32 */
             razaId?: number | string;
             /** Format: date-time */
-            fechaNacimiento?: string;
+            fechaNacimiento: string;
             activo?: boolean;
             fotoUrl?: null | string;
             descripcion?: null | string;
@@ -2518,7 +2551,7 @@ export interface components {
         };
         ConsultaActualizarDTO: {
             /** Format: date-time */
-            fecha?: string;
+            fecha: string;
             diagnostico: string;
             tratamiento: string;
         };
@@ -2528,7 +2561,7 @@ export interface components {
             /** Format: int32 */
             animalId?: number | string;
             /** Format: date-time */
-            fecha?: string;
+            fecha: string;
             diagnostico: string;
             tratamiento: string;
         };
@@ -2617,7 +2650,7 @@ export interface components {
             observaciones?: null | string;
         };
         SolicitudCambiarEstadoDTO: {
-            estado?: components["schemas"]["EstadoSolicitud"];
+            estado: components["schemas"]["EstadoSolicitud"];
         };
         SolicitudCrearDTO: {
             /** Format: int32 */
@@ -2641,12 +2674,12 @@ export interface components {
             estado: components["schemas"]["EstadoSolicitud"];
         };
         TipoVacunaActualizarDTO: {
-            nombre?: string;
+            nombre: string;
             obligatoria?: boolean;
             activo?: boolean;
         };
         TipoVacunaCrearDTO: {
-            nombre?: string;
+            nombre: string;
             obligatoria?: boolean;
             activo?: boolean;
         };
@@ -2680,7 +2713,7 @@ export interface components {
             /** Format: int32 */
             tipoVacunaId?: number | string;
             /** Format: date-time */
-            fecha?: string;
+            fecha: string;
             /** Format: date-time */
             proximaDosis?: string;
         };
@@ -2690,7 +2723,7 @@ export interface components {
             /** Format: int32 */
             tipoVacunaId?: number | string;
             /** Format: date-time */
-            fecha?: string;
+            fecha: string;
             /** Format: date-time */
             proximaDosis?: string;
         };
@@ -2720,17 +2753,17 @@ export interface components {
             };
         };
         VeterinariaActualizarDTO: {
+            nombre: string;
             /** Format: date-time */
-            fechaRegistro: string;
-            nombre?: string;
+            fechaRegistro?: string;
             diagnostico?: string;
             tratamiento?: string;
             activo?: boolean;
         };
         VeterinariaCrearDTO: {
+            nombre: string;
             /** Format: date-time */
-            fechaRegistro: string;
-            nombre?: string;
+            fechaRegistro?: string;
             diagnostico?: string;
             tratamiento?: string;
             activo?: boolean;
@@ -2751,7 +2784,7 @@ export interface components {
             /** Format: int32 */
             voluntarioId?: number | string;
             /** Format: date-time */
-            fecha?: string;
+            fecha: string;
         };
         VisitaDto: {
             /** Format: int32 */
@@ -2767,7 +2800,7 @@ export interface components {
             observaciones: null | string;
         };
         VisitaResultadoDTO: {
-            resultado?: components["schemas"]["ResultadoVisita"];
+            resultado: components["schemas"]["ResultadoVisita"];
             observaciones?: null | string;
         };
     };
