@@ -1,6 +1,7 @@
 using Abstracciones.VisitasDomiciliarias;
 using AdopcionWeb.Clients;
 using InertiaCore;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static Abstracciones.Adoptantes.AdoptanteDtos;
 using static Abstracciones.Animales.AnimalDtos;
@@ -23,6 +24,7 @@ public class SeguimientoAccionInput
     public string? Observaciones { get; set; }
 }
 
+[Authorize(Roles = "Voluntario,Administrador")]
 [Route("voluntario")]
 public class VoluntarioController : Controller
 {

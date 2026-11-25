@@ -46,6 +46,7 @@ export function VisitCard({
 
   const resultadoLabel = getResultadoVisitaLabel(visita.resultado);
   const isPending = resultadoLabel === "Pendiente";
+  const isFutureDate = isPending && new Date(visita.fecha).getTime() > Date.now();
 
   const requestDecision = (favorable: boolean) => {
     setLocalError(null);
@@ -118,19 +119,44 @@ export function VisitCard({
             </div>
           </div>
 
+          {/* Adopter housing context */}
+          {adoptante && (
+            <div className="flex flex-col gap-1.5 rounded-xl bg-[#FAF8F5] px-3.5 py-2.5 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-[#11181C]">Hogar del adoptante:</span>
+                {adoptante.tipoViviendaNombre && (
+                  <Chip size="sm" variant="flat" className="bg-white text-[#11181C]">
+                    {adoptante.tipoViviendaNombre}
+                  </Chip>
+                )}
+              </div>
+              {adoptante.otrasMascotas && (
+                <p className="text-[#52525B]">
+                  Otras mascotas / detalles: {adoptante.otrasMascotas}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Pet photo */}
           <div className="overflow-hidden rounded-2xl bg-stone-200">
             <img
               src={imageUrl}
               alt={petName}
               loading="lazy"
-              className="h-52 w-full object-cover"
+              className="h-48 w-full object-cover"
             />
           </div>
 
           {/* Observations & Action buttons */}
           {isPending ? (
             <div className="flex flex-col gap-3">
+              {isFutureDate && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                  Registro disponible a partir del {formatDate(visita.fecha)}.
+                </div>
+              )}
+
               {localError && (
                 <p className="rounded-xl bg-danger-50 px-3 py-2 text-xs font-medium text-danger-700">
                   {localError}
@@ -148,13 +174,15 @@ export function VisitCard({
                 variant="flat"
                 radius="lg"
                 minRows={3}
+                isDisabled={isFutureDate}
               />
 
               <div className="grid grid-cols-2 gap-3">
                 <Button
-                  radius="full"
+                  radius="lg"
                   variant="flat"
                   color="danger"
+                  isDisabled={isFutureDate}
                   onPress={() => requestDecision(false)}
                   className="font-semibold"
                   endContent={<PawIcon color="currentColor" size={14} />}
@@ -162,9 +190,10 @@ export function VisitCard({
                   No Favorable
                 </Button>
                 <Button
-                  radius="full"
+                  radius="lg"
                   variant="flat"
                   color="success"
+                  isDisabled={isFutureDate}
                   onPress={() => requestDecision(true)}
                   className="font-semibold"
                   endContent={<PawIcon color="currentColor" size={14} />}

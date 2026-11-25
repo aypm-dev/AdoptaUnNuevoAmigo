@@ -1,6 +1,19 @@
 // Handles both numeric C# enum values (default Inertia serialization) and string enum values.
 
 export type ResultadoVisitaLabel = "Pendiente" | "Favorable" | "Desfavorable";
+export type EstadoAnimalLabel =
+  | "Disponible"
+  | "EnProceso"
+  | "EnSeguimiento"
+  | "Adoptado"
+  | "NoAdoptable";
+export type EstadoSolicitudLabel =
+  | "Enviada"
+  | "EnRevision"
+  | "VisitaProgramada"
+  | "Aprobada"
+  | "Rechazada"
+  | "Cancelada";
 export type EstadoSeguimientoLabel =
   | "Pendiente"
   | "Favorable"
@@ -38,6 +51,42 @@ const HITO_DAYS_MAP: Record<string, number> = {
   Dias60: 60,
   Dias90: 90,
 };
+
+const ESTADO_SOLICITUD_MAP: Record<string, EstadoSolicitudLabel> = {
+  "0": "Enviada",
+  "1": "EnRevision",
+  "2": "VisitaProgramada",
+  "3": "Aprobada",
+  "4": "Rechazada",
+  "5": "Cancelada",
+  Enviada: "Enviada",
+  EnRevision: "EnRevision",
+  VisitaProgramada: "VisitaProgramada",
+  Aprobada: "Aprobada",
+  Rechazada: "Rechazada",
+  Cancelada: "Cancelada",
+};
+
+const ESTADO_ANIMAL_MAP: Record<string, EstadoAnimalLabel> = {
+  "0": "Disponible",
+  "1": "EnProceso",
+  "2": "EnSeguimiento",
+  "3": "Adoptado",
+  "4": "NoAdoptable",
+  Disponible: "Disponible",
+  EnProceso: "EnProceso",
+  EnSeguimiento: "EnSeguimiento",
+  Adoptado: "Adoptado",
+  NoAdoptable: "NoAdoptable",
+};
+
+export function getEstadoAnimalLabel(value: number | string): EstadoAnimalLabel {
+  return ESTADO_ANIMAL_MAP[String(value)] ?? "Disponible";
+}
+
+export function getEstadoSolicitudLabel(value: number | string): EstadoSolicitudLabel {
+  return ESTADO_SOLICITUD_MAP[String(value)] ?? "Enviada";
+}
 
 export function getResultadoVisitaLabel(value: number | string): ResultadoVisitaLabel {
   return RESULTADO_VISITA_MAP[String(value)] ?? "Pendiente";

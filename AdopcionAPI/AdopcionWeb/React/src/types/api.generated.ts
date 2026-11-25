@@ -541,6 +541,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/Auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LoginDto"];
+                    "text/json": components["schemas"]["LoginDto"];
+                    "application/*+json": components["schemas"]["LoginDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["SesionDto"];
+                        "application/json": components["schemas"]["SesionDto"];
+                        "text/json": components["schemas"]["SesionDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ValidationProblemDetails"];
+                        "application/json": components["schemas"]["ValidationProblemDetails"];
+                        "text/json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/Consultas": {
         parameters: {
             query?: never;
@@ -1919,6 +1984,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/Usuarios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["UsuarioDto"][];
+                        "application/json": components["schemas"]["UsuarioDto"][];
+                        "text/json": components["schemas"]["UsuarioDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UsuarioCrearDto"];
+                    "text/json": components["schemas"]["UsuarioCrearDto"];
+                    "application/*+json": components["schemas"]["UsuarioCrearDto"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["UsuarioDto"];
+                        "application/json": components["schemas"]["UsuarioDto"];
+                        "text/json": components["schemas"]["UsuarioDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ValidationProblemDetails"];
+                        "application/json": components["schemas"]["ValidationProblemDetails"];
+                        "text/json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/Vacunaciones": {
         parameters: {
             query?: never;
@@ -2602,6 +2775,10 @@ export interface components {
         EstadoSeguimiento: number;
         EstadoSolicitud: number;
         HitoSeguimiento: number;
+        LoginDto: {
+            correo: string;
+            password: string;
+        };
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -2628,6 +2805,7 @@ export interface components {
             fechaRegistro: string;
         };
         ResultadoVisita: number;
+        RolUsuario: number;
         SeguimientoDto: {
             /** Format: int32 */
             idSeguimiento: number | string;
@@ -2648,6 +2826,14 @@ export interface components {
         SeguimientoResultadoDTO: {
             favorable?: boolean;
             observaciones?: null | string;
+        };
+        SesionDto: {
+            token: string;
+            /** Format: date-time */
+            expiraEnUtc: string;
+            nombre: string;
+            correo: string;
+            rol: string;
         };
         SolicitudCambiarEstadoDTO: {
             estado: components["schemas"]["EstadoSolicitud"];
@@ -2708,6 +2894,24 @@ export interface components {
             activo: boolean;
             /** Format: date-time */
             fechaRegistro: string;
+        };
+        UsuarioCrearDto: {
+            nombre: string;
+            apellidoPaterno: string;
+            apellidoMaterno?: null | string;
+            correo: string;
+            nombreUsuario: string;
+            password: string;
+            rol?: components["schemas"]["RolUsuario"];
+            activo?: boolean;
+        };
+        UsuarioDto: {
+            /** Format: int32 */
+            id: number | string;
+            nombre: string;
+            correo: string;
+            nombreUsuario: string;
+            rol: string;
         };
         VacunacionActualizarDTO: {
             /** Format: int32 */

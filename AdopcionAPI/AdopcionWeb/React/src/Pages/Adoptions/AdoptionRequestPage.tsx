@@ -61,9 +61,7 @@ export default function AdoptionRequestPage({
   });
 
   const handleLoginClick = () => {
-    window.alert(
-      "Próxima pantalla: Iniciar sesión (Administrador / Coordinador / Veterinario / Voluntario)"
-    );
+    router.visit("/Cuenta/Ingresar");
   };
 
   if (!animal) {

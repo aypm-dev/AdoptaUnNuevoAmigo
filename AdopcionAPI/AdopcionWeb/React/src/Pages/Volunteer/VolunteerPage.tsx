@@ -1,20 +1,25 @@
 import { useState } from "react";
-import { Head, Link, router } from "@inertiajs/react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
 import {
   Button,
   Card,
   CardBody,
   Chip,
+  Input,
   Navbar,
   NavbarBrand,
   NavbarContent,
   NavbarItem,
+  Pagination,
   Tab,
   Tabs,
 } from "@heroui/react";
 import { Footer } from "@/components/Footer";
 import { PawIcon } from "@/components/PawIcon";
-import { getEstadoSeguimientoLabel, getResultadoVisitaLabel } from "@/lib/enumHelpers";
+import {
+  getEstadoSeguimientoLabel,
+  getResultadoVisitaLabel,
+} from "@/lib/enumHelpers";
 import { FollowUpGroupCard } from "@/Pages/Volunteer/FollowUpGroupCard";
 import { VisitCard } from "@/Pages/Volunteer/VisitCard";
 import type {
@@ -25,6 +30,13 @@ import type {
   VacunacionDto,
   VisitaDto,
 } from "@/types/models";
+
+interface SharedAuth {
+  autenticado: boolean;
+  nombre: string | null;
+  correo: string | null;
+  rol: string | null;
+}
 
 interface VolunteerPageProps {
   voluntarioNombre: string;
@@ -39,6 +51,8 @@ interface VolunteerPageProps {
   apiError?: string | null;
 }
 
+const PAGE_SIZE = 6;
+
 export default function VolunteerPage({
   voluntarioNombre,
   visitas,
@@ -52,19 +66,54 @@ export default function VolunteerPage({
   apiError,
 }: VolunteerPageProps) {
   const [selectedTab, setSelectedTab] = useState<string>("visitas");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [onlyOverdue, setOnlyOverdue] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<"visitas" | "seguimientos">("visitas");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const solicitudById = new Map(solicitudes.map((s) => [String(s.idSolicitud), s]));
+  const { auth, csrfToken } = usePage<{
+    auth?: SharedAuth;
+    csrfToken?: string;
+  }>().props;
+
+  const displayName =
+    auth?.autenticado && auth.nombre ? auth.nombre : voluntarioNombre;
+
+  const solicitudById = new Map(
+    solicitudes.map((s) => [String(s.idSolicitud), s])
+  );
   const animalById = new Map(animales.map((a) => [String(a.idAnimal), a]));
-  const adoptanteById = new Map(adoptantes.map((a) => [String(a.idAdoptante), a]));
+  const adoptanteById = new Map(
+    adoptantes.map((a) => [String(a.idAdoptante), a])
+  );
+
+  const query = searchQuery.trim().toLowerCase();
+
+  const matchesSearch = (solicitudId: number | string) => {
+    if (!query) return true;
+    const sol = solicitudById.get(String(solicitudId));
+    const animal = sol ? animalById.get(String(sol.animalId)) : undefined;
+    const adoptante = sol ? adoptanteById.get(String(sol.adoptanteId)) : undefined;
+
+    return (
+      (animal?.nombre ?? "").toLowerCase().includes(query) ||
+      (adoptante?.nombre ?? "").toLowerCase().includes(query) ||
+      (sol?.animalNombre ?? "").toLowerCase().includes(query) ||
+      (sol?.adoptanteNombre ?? "").toLowerCase().includes(query)
+    );
+  };
 
   const pendingVisits = visitas.filter(
-    (v) => getResultadoVisitaLabel(v.resultado) === "Pendiente"
+    (v) =>
+      getResultadoVisitaLabel(v.resultado) === "Pendiente" &&
+      matchesSearch(v.solicitudId)
   );
   const completedVisits = visitas.filter(
-    (v) => getResultadoVisitaLabel(v.resultado) !== "Pendiente"
+    (v) =>
+      getResultadoVisitaLabel(v.resultado) !== "Pendiente" &&
+      matchesSearch(v.solicitudId)
   );
 
-  // Group follow-ups by solicitudId so each adoption shows its 30 / 60 / 90 cycle together
   const followUpGroupsMap = new Map<number, SeguimientoDto[]>();
   for (const s of seguimientos) {
     const sid = Number(s.solicitudId);
@@ -81,34 +130,83 @@ export default function VolunteerPage({
         const label = getEstadoSeguimientoLabel(i.estado);
         return label === "Pendiente" || label === "Vencido";
       }),
+      hasOverdue: items.some(
+        (i) => getEstadoSeguimientoLabel(i.estado) === "Vencido"
+      ),
     })
   );
 
-  const openFollowUpGroups = allFollowUpGroups.filter((g) => g.hasOpen);
-  const closedFollowUpGroups = allFollowUpGroups.filter((g) => !g.hasOpen);
+  const openFollowUpGroups = allFollowUpGroups.filter(
+    (g) =>
+      g.hasOpen &&
+      (!onlyOverdue || g.hasOverdue) &&
+      matchesSearch(g.solicitudId)
+  );
+  const closedFollowUpGroups = allFollowUpGroups.filter(
+    (g) => !g.hasOpen && matchesSearch(g.solicitudId)
+  );
+
+  const totalPendingVisitsCount = visitas.filter(
+    (v) => getResultadoVisitaLabel(v.resultado) === "Pendiente"
+  ).length;
+  const totalOpenFollowUpsCount = allFollowUpGroups.filter((g) => g.hasOpen).length;
+  const totalHistoryCount =
+    visitas.filter((v) => getResultadoVisitaLabel(v.resultado) !== "Pendiente").length +
+    allFollowUpGroups.filter((g) => !g.hasOpen).length;
+
+  const paginate = <T,>(items: T[]) => {
+    const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+    const safePage = Math.min(currentPage, totalPages);
+    return {
+      totalPages,
+      safePage,
+      pageItems: items.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    };
+  };
+
+  const handleTabChange = (key: string) => {
+    setSelectedTab(key);
+    setCurrentPage(1);
+  };
+
+  const handleLogout = () => {
+    router.post(
+      "/Cuenta/Salir",
+      { __RequestVerificationToken: csrfToken ?? "" },
+      { forceFormData: true }
+    );
+  };
+
+  const visitsPage = paginate(pendingVisits);
+  const followUpsPage = paginate(openFollowUpGroups);
+  const historyVisitsPage = paginate(completedVisits);
+  const historyFollowUpsPage = paginate(closedFollowUpGroups);
 
   return (
     <>
       <Head title="Panel de Voluntario" />
-      <div className="flex min-h-screen flex-col bg-[#FAF8F5] text-[#11181C]">
+      <div className="flex min-h-screen flex-col overflow-x-clip bg-[#FAF8F5] text-[#11181C]">
         <Navbar
           maxWidth="xl"
           isBordered
           className="border-black/5 bg-[#FAF8F5]/90 backdrop-blur-md"
+          classNames={{
+            wrapper: "px-3 sm:px-6 gap-2",
+          }}
         >
-          <NavbarBrand>
+          <NavbarBrand className="min-w-0">
             <Link
               href="/"
-              className="flex items-center gap-2.5 text-[#11181C] no-underline"
+              className="flex min-w-0 items-center gap-2 text-[#11181C] no-underline"
             >
-              <PawIcon color="#292D32" size={22} />
-              <span className="text-[15px] font-bold tracking-tight">
+              <PawIcon color="#292D32" size={20} />
+              <span className="truncate text-xs font-bold tracking-tight sm:text-[15px]">
                 Adopta Un Nuevo Amigo
               </span>
             </Link>
           </NavbarBrand>
 
-          <NavbarContent justify="end" className="gap-3">
+          <NavbarContent justify="end" className="gap-2">
             <NavbarItem className="hidden sm:flex">
               <Button
                 as={Link}
@@ -118,10 +216,10 @@ export default function VolunteerPage({
                 variant="light"
                 className="font-medium text-[#52525B]"
               >
-                Ver catálogo público
+                Ver catálogo
               </Button>
             </NavbarItem>
-            <NavbarItem>
+            <NavbarItem className="hidden sm:flex">
               <Chip
                 size="sm"
                 variant="flat"
@@ -130,28 +228,41 @@ export default function VolunteerPage({
                 Voluntario
               </Chip>
             </NavbarItem>
+            {auth?.autenticado && (
+              <NavbarItem>
+                <Button
+                  size="sm"
+                  radius="full"
+                  variant="bordered"
+                  onPress={handleLogout}
+                  className="border-default-300 bg-white px-3 font-semibold text-[#11181C]"
+                >
+                  <span className="sm:hidden">Salir</span>
+                  <span className="hidden sm:inline">Cerrar sesión</span>
+                </Button>
+              </NavbarItem>
+            )}
           </NavbarContent>
         </Navbar>
 
-        <main className="mx-auto w-full max-w-6xl flex-1 px-6 pb-8 pt-6 md:px-8 md:pt-8">
-          {/* Greeting header matching Figma */}
+        <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 pb-8 pt-6 sm:px-6 md:px-8 md:pt-8">
+          {/* Greeting header */}
           <section className="flex items-center justify-between gap-4 md:rounded-3xl md:border md:border-black/5 md:bg-white/75 md:p-7 md:shadow-sm">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-[#11181C] md:text-4xl">
-                Bienvenido, {voluntarioNombre}.
+                Bienvenido, {displayName}.
               </h1>
               <p className="mt-1 text-sm text-[#52525B]">
                 Visitas y seguimientos asignados
               </p>
             </div>
             <img
-              src="/images/brand/hero-mascot.png"
-              alt="Adopta Un Nuevo Amigo"
+              src="/images/brand/volunteer-mascot.png"
+              alt="Mascotas de Adopta Un Nuevo Amigo"
               className="h-16 w-20 shrink-0 object-contain md:h-20 md:w-24"
             />
           </section>
 
-          {/* Status banners */}
           {apiError && (
             <Card className="mt-5 border border-danger-200 bg-danger-50 shadow-sm">
               <CardBody className="flex flex-row items-center justify-between gap-4">
@@ -185,16 +296,101 @@ export default function VolunteerPage({
             </div>
           )}
 
-          {/* 2 Tabs: Visitas pendientes & Seguimientos pendientes (3rd out-of-scope tab removed) */}
-          <div className="mt-6">
+          {/* Search & quick filter bar */}
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Input
+              aria-label="Buscar por mascota o adoptante"
+              placeholder="Buscar por mascota o adoptante..."
+              value={searchQuery}
+              onValueChange={(v) => {
+                setSearchQuery(v);
+                setCurrentPage(1);
+              }}
+              isClearable
+              onClear={() => {
+                setSearchQuery("");
+                setCurrentPage(1);
+              }}
+              variant="flat"
+              radius="full"
+              size="md"
+              className="sm:max-w-md"
+              classNames={{
+                inputWrapper: "bg-white border border-black/10 shadow-xs",
+              }}
+            />
+
+            {selectedTab === "seguimientos" && (
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  radius="full"
+                  variant={onlyOverdue ? "solid" : "flat"}
+                  color={onlyOverdue ? "danger" : "default"}
+                  onPress={() => {
+                    setOnlyOverdue(!onlyOverdue);
+                    setCurrentPage(1);
+                  }}
+                  className="font-semibold"
+                >
+                  {onlyOverdue ? "Mostrando solo vencidos" : "Filtrar solo vencidos"}
+                </Button>
+              </div>
+            )}
+
+            {selectedTab === "historial" && (
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  radius="full"
+                  variant={historyFilter === "visitas" ? "solid" : "flat"}
+                  color={historyFilter === "visitas" ? "warning" : "default"}
+                  onPress={() => {
+                    setHistoryFilter("visitas");
+                    setCurrentPage(1);
+                  }}
+                  className={
+                    historyFilter === "visitas"
+                      ? "font-semibold text-white"
+                      : "font-semibold"
+                  }
+                >
+                  Visitas ({completedVisits.length})
+                </Button>
+                <Button
+                  size="sm"
+                  radius="full"
+                  variant={historyFilter === "seguimientos" ? "solid" : "flat"}
+                  color={historyFilter === "seguimientos" ? "warning" : "default"}
+                  onPress={() => {
+                    setHistoryFilter("seguimientos");
+                    setCurrentPage(1);
+                  }}
+                  className={
+                    historyFilter === "seguimientos"
+                      ? "font-semibold text-white"
+                      : "font-semibold"
+                  }
+                >
+                  Seguimientos ({closedFollowUpGroups.length})
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* 3 Clean Segmented Tabs: Visitas pendientes | Seguimientos pendientes | Historial */}
+          <div className="mt-5">
             <Tabs
               selectedKey={selectedTab}
-              onSelectionChange={(key) => setSelectedTab(String(key))}
-              color="warning"
-              variant="underlined"
+              onSelectionChange={(key) => handleTabChange(String(key))}
+              variant="solid"
+              radius="lg"
               classNames={{
-                tabList: "gap-6 border-b border-black/10 w-full",
-                tab: "px-1 pb-3 font-semibold",
+                base: "w-full max-w-full",
+                tabList:
+                  "bg-[#EFECE6] p-1 w-full flex flex-wrap gap-1 sm:grid sm:grid-cols-3",
+                cursor: "bg-white shadow-sm",
+                tab: "h-9 sm:h-10 text-xs sm:text-sm font-semibold flex-1 min-w-fit",
               }}
             >
               <Tab
@@ -203,21 +399,27 @@ export default function VolunteerPage({
                   <div className="flex items-center gap-2">
                     <span>Visitas pendientes</span>
                     <Chip size="sm" variant="flat" color="warning">
-                      {pendingVisits.length}
+                      {totalPendingVisitsCount}
                     </Chip>
                   </div>
                 }
               >
                 <section className="mt-5">
-                  <h2 className="mb-4 text-lg font-bold text-[#11181C]">
-                    Visitas domiciliarias pendientes
-                  </h2>
+                  <div className="mb-4 flex items-center justify-between gap-2">
+                    <h2 className="text-lg font-bold text-[#11181C]">
+                      Visitas domiciliarias pendientes
+                    </h2>
+                    <span className="shrink-0 whitespace-nowrap text-xs font-medium text-[#52525B]">
+                      {pendingVisits.length}{" "}
+                      {pendingVisits.length === 1 ? "resultado" : "resultados"}
+                    </span>
+                  </div>
 
-                  {pendingVisits.length === 0 ? (
+                  {visitsPage.pageItems.length === 0 ? (
                     <Card className="border border-dashed border-black/15 bg-white/75 shadow-none">
                       <CardBody className="py-10 text-center">
                         <p className="text-sm font-semibold text-[#11181C]">
-                          No tiene visitas pendientes en este momento
+                          No hay visitas pendientes con ese filtro
                         </p>
                         <p className="mt-1 text-xs text-[#52525B]">
                           Cuando un coordinador le asigne una nueva visita domiciliaria, aparecerá aquí.
@@ -225,36 +427,9 @@ export default function VolunteerPage({
                       </CardBody>
                     </Card>
                   ) : (
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                      {pendingVisits.map((visita) => {
-                        const sol = solicitudById.get(String(visita.solicitudId));
-                        const animal = sol
-                          ? animalById.get(String(sol.animalId))
-                          : undefined;
-                        const adoptante = sol
-                          ? adoptanteById.get(String(sol.adoptanteId))
-                          : undefined;
-
-                        return (
-                          <VisitCard
-                            key={String(visita.idVisita)}
-                            visita={visita}
-                            animal={animal}
-                            adoptante={adoptante}
-                            vacunaciones={vacunaciones}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {completedVisits.length > 0 && (
-                    <div className="mt-10">
-                      <h3 className="mb-4 text-base font-bold text-[#52525B]">
-                        Visitas registradas recientemente ({completedVisits.length})
-                      </h3>
+                    <>
                       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        {completedVisits.map((visita) => {
+                        {visitsPage.pageItems.map((visita) => {
                           const sol = solicitudById.get(String(visita.solicitudId));
                           const animal = sol
                             ? animalById.get(String(sol.animalId))
@@ -274,7 +449,20 @@ export default function VolunteerPage({
                           );
                         })}
                       </div>
-                    </div>
+
+                      {visitsPage.totalPages > 1 && (
+                        <div className="mt-8 flex justify-center">
+                          <Pagination
+                            total={visitsPage.totalPages}
+                            page={visitsPage.safePage}
+                            onChange={setCurrentPage}
+                            color="warning"
+                            showControls
+                            radius="full"
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </section>
               </Tab>
@@ -285,21 +473,27 @@ export default function VolunteerPage({
                   <div className="flex items-center gap-2">
                     <span>Seguimientos pendientes</span>
                     <Chip size="sm" variant="flat" color="warning">
-                      {openFollowUpGroups.length}
+                      {totalOpenFollowUpsCount}
                     </Chip>
                   </div>
                 }
               >
                 <section className="mt-5">
-                  <h2 className="mb-4 text-lg font-bold text-[#11181C]">
-                    Animales a los que realiza seguimiento
-                  </h2>
+                  <div className="mb-4 flex items-center justify-between gap-2">
+                    <h2 className="text-lg font-bold text-[#11181C]">
+                      Animales a los que realiza seguimientos
+                    </h2>
+                    <span className="text-xs font-medium text-[#52525B]">
+                      {openFollowUpGroups.length}{" "}
+                      {openFollowUpGroups.length === 1 ? "ciclo" : "ciclos"}
+                    </span>
+                  </div>
 
-                  {openFollowUpGroups.length === 0 ? (
+                  {followUpsPage.pageItems.length === 0 ? (
                     <Card className="border border-dashed border-black/15 bg-white/75 shadow-none">
                       <CardBody className="py-10 text-center">
                         <p className="text-sm font-semibold text-[#11181C]">
-                          No hay seguimientos pendientes en este momento
+                          No hay seguimientos pendientes con ese filtro
                         </p>
                         <p className="mt-1 text-xs text-[#52525B]">
                           Los seguimientos de 30, 60 y 90 días se generan automáticamente al aprobar una adopción.
@@ -307,36 +501,9 @@ export default function VolunteerPage({
                       </CardBody>
                     </Card>
                   ) : (
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                      {openFollowUpGroups.map((group) => {
-                        const sol = solicitudById.get(String(group.solicitudId));
-                        const animal = sol
-                          ? animalById.get(String(sol.animalId))
-                          : undefined;
-                        const adoptante = sol
-                          ? adoptanteById.get(String(sol.adoptanteId))
-                          : undefined;
-
-                        return (
-                          <FollowUpGroupCard
-                            key={group.solicitudId}
-                            solicitudId={group.solicitudId}
-                            seguimientos={group.items}
-                            animal={animal}
-                            adoptante={adoptante}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {closedFollowUpGroups.length > 0 && (
-                    <div className="mt-10">
-                      <h3 className="mb-4 text-base font-bold text-[#52525B]">
-                        Ciclos de seguimiento cerrados ({closedFollowUpGroups.length})
-                      </h3>
+                    <>
                       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        {closedFollowUpGroups.map((group) => {
+                        {followUpsPage.pageItems.map((group) => {
                           const sol = solicitudById.get(String(group.solicitudId));
                           const animal = sol
                             ? animalById.get(String(sol.animalId))
@@ -356,7 +523,156 @@ export default function VolunteerPage({
                           );
                         })}
                       </div>
-                    </div>
+
+                      {followUpsPage.totalPages > 1 && (
+                        <div className="mt-8 flex justify-center">
+                          <Pagination
+                            total={followUpsPage.totalPages}
+                            page={followUpsPage.safePage}
+                            onChange={setCurrentPage}
+                            color="warning"
+                            showControls
+                            radius="full"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </section>
+              </Tab>
+
+              <Tab
+                key="historial"
+                title={
+                  <div className="flex items-center gap-2">
+                    <span>Historial</span>
+                    <Chip size="sm" variant="flat">
+                      {totalHistoryCount}
+                    </Chip>
+                  </div>
+                }
+              >
+                <section className="mt-5">
+                  {historyFilter === "visitas" ? (
+                    <>
+                      <div className="mb-4 flex items-center justify-between gap-2">
+                        <h2 className="text-lg font-bold text-[#11181C]">
+                          Visitas registradas
+                        </h2>
+                        <span className="text-xs font-medium text-[#52525B]">
+                          {completedVisits.length} registros
+                        </span>
+                      </div>
+
+                      {historyVisitsPage.pageItems.length === 0 ? (
+                        <Card className="border border-dashed border-black/15 bg-white/75 shadow-none">
+                          <CardBody className="py-10 text-center">
+                            <p className="text-sm font-semibold text-[#11181C]">
+                              No hay visitas en el historial con ese filtro
+                            </p>
+                          </CardBody>
+                        </Card>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            {historyVisitsPage.pageItems.map((visita) => {
+                              const sol = solicitudById.get(
+                                String(visita.solicitudId)
+                              );
+                              const animal = sol
+                                ? animalById.get(String(sol.animalId))
+                                : undefined;
+                              const adoptante = sol
+                                ? adoptanteById.get(String(sol.adoptanteId))
+                                : undefined;
+
+                              return (
+                                <VisitCard
+                                  key={String(visita.idVisita)}
+                                  visita={visita}
+                                  animal={animal}
+                                  adoptante={adoptante}
+                                  vacunaciones={vacunaciones}
+                                />
+                              );
+                            })}
+                          </div>
+
+                          {historyVisitsPage.totalPages > 1 && (
+                            <div className="mt-8 flex justify-center">
+                              <Pagination
+                                total={historyVisitsPage.totalPages}
+                                page={historyVisitsPage.safePage}
+                                onChange={setCurrentPage}
+                                color="warning"
+                                showControls
+                                radius="full"
+                              />
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-4 flex items-center justify-between gap-2">
+                        <h2 className="text-lg font-bold text-[#11181C]">
+                          Ciclos de seguimiento cerrados
+                        </h2>
+                        <span className="text-xs font-medium text-[#52525B]">
+                          {closedFollowUpGroups.length} ciclos
+                        </span>
+                      </div>
+
+                      {historyFollowUpsPage.pageItems.length === 0 ? (
+                        <Card className="border border-dashed border-black/15 bg-white/75 shadow-none">
+                          <CardBody className="py-10 text-center">
+                            <p className="text-sm font-semibold text-[#11181C]">
+                              No hay ciclos cerrados con ese filtro
+                            </p>
+                          </CardBody>
+                        </Card>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            {historyFollowUpsPage.pageItems.map((group) => {
+                              const sol = solicitudById.get(
+                                String(group.solicitudId)
+                              );
+                              const animal = sol
+                                ? animalById.get(String(sol.animalId))
+                                : undefined;
+                              const adoptante = sol
+                                ? adoptanteById.get(String(sol.adoptanteId))
+                                : undefined;
+
+                              return (
+                                <FollowUpGroupCard
+                                  key={group.solicitudId}
+                                  solicitudId={group.solicitudId}
+                                  seguimientos={group.items}
+                                  animal={animal}
+                                  adoptante={adoptante}
+                                />
+                              );
+                            })}
+                          </div>
+
+                          {historyFollowUpsPage.totalPages > 1 && (
+                            <div className="mt-8 flex justify-center">
+                              <Pagination
+                                total={historyFollowUpsPage.totalPages}
+                                page={historyFollowUpsPage.safePage}
+                                onChange={setCurrentPage}
+                                color="warning"
+                                showControls
+                                radius="full"
+                              />
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
                   )}
                 </section>
               </Tab>
